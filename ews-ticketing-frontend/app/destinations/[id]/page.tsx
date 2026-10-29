@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MapPin, Loader2 } from 'lucide-react';
 import { apiClient } from '@/app/lib/axios';
@@ -12,7 +12,7 @@ import TicketBookingForm from '@/app/components/public/TicketBookingForm';
 import PaymentModal from '@/app/components/public/PaymentModal';
 import SuccessTicketModal from '@/app/components/public/SuccessTicketModal';
 
-export default function DestinationDetailPage() {
+function DestinationDetailContent() {
     const params = useParams();
     const router = useRouter();
     const id = params.id;
@@ -48,11 +48,9 @@ export default function DestinationDetailPage() {
         }
     };
 
-    // Pengecekan autentikasi sebelum membuka modal pembayaran
     const handleOpenPaymentModal = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // 1. Cek Token dari LocalStorage atau Cookie
         const token = localStorage.getItem('token') || document.cookie.includes('auth_token');
 
         if (!token) {
@@ -61,7 +59,6 @@ export default function DestinationDetailPage() {
             return;
         }
 
-        // 2. Validasi tanggal kunjungan
         if (!visitDate) {
             toast.error('Silakan pilih tanggal kunjungan terlebih dahulu.');
             return;
@@ -80,17 +77,14 @@ export default function DestinationDetailPage() {
             formData.append('payment_method', selectedMethod);
             formData.append('payment_proof', proofFile);
 
-            // AMBIL TOKEN DARI LOCALSTORAGE UNTUK MEMASTIKAN TIDAK 401
             const token = localStorage.getItem('token');
 
             const res = await apiClient.post('/tickets', formData, {
                 headers: {
-                    // Hapus 'Content-Type': 'multipart/form-data' agar Axios membuat boundary otomatis!
                     ...(token ? { Authorization: `Bearer ${token}` } : {})
                 },
             });
 
-            // Simpan data tiket baru, tutup modal bayar, buka modal sukses
             setCreatedTicketData(res.data.data);
             setIsPaymentModalOpen(false);
             setIsSuccessModalOpen(true);
@@ -100,7 +94,7 @@ export default function DestinationDetailPage() {
                 toast.error('Sesi Anda telah berakhir, silakan login kembali.');
                 router.push('/auth/users/login');
             } else {
-                toast.error(error.response?.data?.message || 'Gagal mengirim pesanan tiket. Periksa kembali ukuran file bukti transfer.');
+                toast.error(error.response?.data?.message || 'Gagal mengirim pesanan tiket.');
             }
         } finally {
             setSubmitting(false);
@@ -109,25 +103,17 @@ export default function DestinationDetailPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex flex-col bg-slate-50">
-                <PublicNavbar />
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-2 py-32">
-                    <Loader2 className="w-8 h-8 animate-spin text-emerald-700" />
-                    <span className="text-xs font-semibold">Memuat informasi tiket & destinasi...</span>
-                </div>
-                <PublicFooter />
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-2 py-32">
+                <Loader2 className="w-8 h-8 animate-spin text-emerald-700" />
+                <span className="text-xs font-semibold">Memuat informasi tiket & destinasi...</span>
             </div>
         );
     }
 
     if (!destination) {
         return (
-            <div className="min-h-screen flex flex-col bg-slate-50">
-                <PublicNavbar />
-                <div className="flex-1 flex flex-col items-center justify-center py-32">
-                    <p className="text-sm font-bold text-slate-700">Destinasi tidak ditemukan.</p>
-                </div>
-                <PublicFooter />
+            <div className="flex-1 flex flex-col items-center justify-center py-32">
+                <p className="text-sm font-bold text-slate-700">Destinasi tidak ditemukan.</p>
             </div>
         );
     }
@@ -139,56 +125,49 @@ export default function DestinationDetailPage() {
     const totalPrice = destination.ticket_price * ticketCount;
 
     return (
-        <div className="min-h-screen flex flex-col bg-slate-50">
-            <PublicNavbar />
-
-            <main className="flex-1 max-w-7xl w-full mx-auto py-10 px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Kolom Kiri: Detail Destinasi */}
-                    <div className="lg:col-span-2 space-y-6">
-                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-                            <div className="h-72 sm:h-80 relative">
-                                <img src={imageUrl} alt={destination.name} className="w-full h-full object-cover" />
-                                <div className="absolute top-4 left-4">
-                                    <span className="px-3 py-1 rounded-full bg-slate-900/70 backdrop-blur-md text-white font-bold text-xs uppercase">
-                                        {destination.is_active ? 'Aktif (Normal)' : 'Darurat Ditutup'}
-                                    </span>
-                                </div>
+        <main className="flex-1 max-w-7xl w-full mx-auto py-10 px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                        <div className="h-72 sm:h-80 relative">
+                            <img src={imageUrl} alt={destination.name} className="w-full h-full object-cover" />
+                            <div className="absolute top-4 left-4">
+                                <span className="px-3 py-1 rounded-full bg-slate-900/70 backdrop-blur-md text-white font-bold text-xs uppercase">
+                                    {destination.is_active ? 'Aktif (Normal)' : 'Darurat Ditutup'}
+                                </span>
                             </div>
-                            <div className="p-6 sm:p-8 space-y-4">
-                                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{destination.name}</h1>
-                                <p className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
-                                    <MapPin className="w-4 h-4 text-emerald-600" />
-                                    <span>{destination.location || 'Ngoro-Oro, Patuk, Gunungkidul'}</span>
+                        </div>
+                        <div className="p-6 sm:p-8 space-y-4">
+                            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{destination.name}</h1>
+                            <p className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
+                                <MapPin className="w-4 h-4 text-emerald-600" />
+                                <span>{destination.location || 'Ngoro-Oro, Patuk, Gunungkidul'}</span>
+                            </p>
+                            <hr className="border-slate-100" />
+                            <div>
+                                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Tentang Destinasi & Aktivitas</h3>
+                                <p className="text-sm text-slate-600 leading-relaxed">
+                                    {destination.description || 'Nikmati keindahan panorama alam eksotis dan fasilitas wisata terpadu Pokdarwis Jurug Gedhe.'}
                                 </p>
-                                <hr className="border-slate-100" />
-                                <div>
-                                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Tentang Destinasi & Aktivitas</h3>
-                                    <p className="text-sm text-slate-600 leading-relaxed">
-                                        {destination.description || 'Nikmati keindahan panorama alam eksotis dan fasilitas wisata terpadu Pokdarwis Jurug Gedhe.'}
-                                    </p>
-                                </div>
                             </div>
                         </div>
                     </div>
-
-                    {/* Kolom Kanan: Form Input Tiket */}
-                    <div className="lg:col-span-1">
-                        <TicketBookingForm 
-                            ticketPrice={destination.ticket_price}
-                            ticketCount={ticketCount}
-                            setTicketCount={setTicketCount}
-                            visitDate={visitDate}
-                            setVisitDate={setVisitDate}
-                            isActive={destination.is_active}
-                            onSubmit={handleOpenPaymentModal}
-                            totalPrice={totalPrice}
-                        />
-                    </div>
                 </div>
-            </main>
 
-            {/* Modal Pembayaran */}
+                <div className="lg:col-span-1">
+                    <TicketBookingForm 
+                        ticketPrice={destination.ticket_price}
+                        ticketCount={ticketCount}
+                        setTicketCount={setTicketCount}
+                        visitDate={visitDate}
+                        setVisitDate={setVisitDate}
+                        isActive={destination.is_active}
+                        onSubmit={handleOpenPaymentModal}
+                        totalPrice={totalPrice}
+                    />
+                </div>
+            </div>
+
             <PaymentModal 
                 isOpen={isPaymentModalOpen}
                 onClose={() => setIsPaymentModalOpen(false)}
@@ -199,7 +178,6 @@ export default function DestinationDetailPage() {
                 submitting={submitting}
             />
 
-            {/* Modal Sukses Pemesanan */}
             <SuccessTicketModal 
                 isOpen={isSuccessModalOpen}
                 ticketCode={createdTicketData?.ticket_code}
@@ -210,7 +188,22 @@ export default function DestinationDetailPage() {
                     router.push('/');
                 }}
             />
+        </main>
+    );
+}
 
+export default function DestinationDetailPage() {
+    return (
+        <div className="min-h-screen flex flex-col bg-slate-50">
+            <PublicNavbar />
+            <Suspense fallback={
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-2 py-32">
+                    <Loader2 className="w-8 h-8 animate-spin text-emerald-700" />
+                    <span className="text-xs font-semibold">Memuat halaman...</span>
+                </div>
+            }>
+                <DestinationDetailContent />
+            </Suspense>
             <PublicFooter />
         </div>
     );
