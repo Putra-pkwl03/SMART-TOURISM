@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Search, User, LogOut, Ticket, ChevronDown, UserCircle } from 'lucide-react';
@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { apiClient } from '@/app/lib/axios';
 import LogoutModal from '@/app/components/dashboard/admin/LogoutModal'; 
 
-export default function PublicNavbar() {
+function NavbarContent() {
     const pathname = usePathname();
     const router = useRouter();
 
@@ -188,7 +188,6 @@ export default function PublicNavbar() {
                         {/* Jika Sudah Login */}
                         {currentUser ? (
                             <div className="relative pl-2 border-l border-slate-200" ref={dropdownRef}>
-                                {/* Tombol Pemicu Dropdown Profil */}
                                 <button
                                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                                     className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer text-left"
@@ -246,7 +245,6 @@ export default function PublicNavbar() {
                                 )}
                             </div>
                         ) : (
-                            /* Jika Belum Login */
                             <Link 
                                 href="/auth/users/login" 
                                 className="px-5 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold rounded-full shadow-md transition flex items-center gap-2 cursor-pointer"
@@ -267,5 +265,13 @@ export default function PublicNavbar() {
                 loading={loggingOut}
             />
         </>
+    );
+}
+
+export default function PublicNavbar() {
+    return (
+        <Suspense fallback={<div className="h-20 bg-white border-b border-slate-200 sticky top-0 z-40" />}>
+            <NavbarContent />
+        </Suspense>
     );
 }
