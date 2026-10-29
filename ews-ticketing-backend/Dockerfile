@@ -28,10 +28,11 @@ RUN composer install --no-dev --optimize-autoloader
 # Set permissions for Laravel storage and bootstrap cache
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Configure Apache DocumentRoot to point to Laravel's public directory
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
+# -------------------------------------------------------------
+# PERBAIKAN APACHE DOCUMENT ROOT (Menggunakan direktif eksplisit)
+# -------------------------------------------------------------
+RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
+RUN sed -i 's!/var/www/!/var/www/html/public!g' /etc/apache2/apache2.conf
 
 # Enable Apache Mod Rewrite
 RUN a2enmod rewrite
@@ -39,5 +40,7 @@ RUN a2enmod rewrite
 # Expose port 80
 EXPOSE 80
 
-# Start Apache server and run migrations automatically
-CMD php artisan config:cache && php artisan route:cache && php artisan migrate --force && apache2-foreground
+# -------------------------------------------------------------
+# PERBAIKAN PERINTAH STARTUP (Hapus cache route otomatis saat boot)
+# -------------------------------------------------------------
+CMD php artisan migrate --force && apache2-foreground
