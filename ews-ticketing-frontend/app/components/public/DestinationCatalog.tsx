@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'; // Import router
 interface DestinationCatalogProps {
     destinations: any[];
     loading: boolean;
+    onSelectDestination: (id: number) => void;
 }
 
 export default function DestinationCatalog({ destinations, loading }: DestinationCatalogProps) {
