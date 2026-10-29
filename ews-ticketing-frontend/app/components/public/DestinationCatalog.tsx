@@ -11,7 +11,7 @@ interface DestinationCatalogProps {
 
 export default function DestinationCatalog({ destinations, loading }: DestinationCatalogProps) {
     const router = useRouter();
-    const BACKEND_URL = 'http://127.0.0.1:8000';
+    const BACKEND_URL = 'https://smartmandala.com';
 
     return (
         <section id="destinasi" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
