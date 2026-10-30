@@ -25,7 +25,7 @@
 import axios from 'axios';
 
 export const apiClient = axios.create({
-    baseURL: 'https://smartmandala.com/api',
+    baseURL: 'https://smartmdl.com/api',
     headers: {
         'Accept': 'application/json',
         // Hapus 'Content-Type': 'application/json' dari sini agar FormData tidak rusak!
