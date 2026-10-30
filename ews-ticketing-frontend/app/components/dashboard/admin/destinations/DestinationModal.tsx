@@ -1,268 +1,206 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { X, MapPin, UploadCloud, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import DestinationFormContent from './DestinationFormContent';
+
+interface GalleryItem {
+    id: string | number; // Bisa 'banner-main', id database (number), atau file id unik (string)
+    type: 'existing' | 'file';
+    url: string; // URL preview (baik URL backend atau URL.createObjectURL)
+    file?: File; // File asli jika tipenya adalah upload baru
+}
 
 interface DestinationItem {
     id: number;
     name: string;
+    type_entry?: 'destination' | 'package';
     type: string;
     price: number;
+    umkm_revenue_share?: number;
     quota: number;
     status: 'Aktif' | 'Darurat Ditutup';
     description?: string;
     image_url?: string;
     image_file?: File | null;
+    image_files?: File[];
+    images?: { id: number; image_url: string }[];
 }
 
 interface DestinationModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (data: DestinationItem) => void;
+    onSave: (data: any) => Promise<void> | void;
     initialData?: DestinationItem | null;
 }
 
+const DEFAULT_REGION = 'Padukuhan Gembyong (Jurug Gedhe)';
+
 export default function DestinationModal({ isOpen, onClose, onSave, initialData }: DestinationModalProps) {
     const [name, setName] = useState('');
-    const [type, setType] = useState('Padukuhan Gembyong, Ngoro-Oro');
-    const [price, setPrice] = useState(35000);
-    const [quota, setQuota] = useState(50);
+    const [entryType, setEntryType] = useState<'destination' | 'package'>('destination');
+    const [type, setType] = useState(DEFAULT_REGION);
+    const [price, setPrice] = useState<number | ''>(35000);
+    const [revenueShare, setRevenueShare] = useState<number | ''>(0);
+    const [quota, setQuota] = useState<number | ''>(50);
     const [status, setStatus] = useState<'Aktif' | 'Darurat Ditutup'>('Aktif');
     const [description, setDescription] = useState('');
     
-    // State untuk Image Drag & Drop / Preview
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [imagePreview, setImagePreview] = useState<string>('');
+    // Gunakan 1 state gabungan untuk galeri agar aman saat digeser-geser
+    const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
     const [isDragging, setIsDragging] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const getFullImageUrl = (url?: string) => {
+        if (!url) return '';
+        if (url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://')) {
+            return url;
+        }
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+        return `${backendUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+    };
 
     useEffect(() => {
         if (initialData) {
             setName(initialData.name || '');
-            setType(initialData.type || 'Padukuhan Gembyong, Ngoro-Oro');
-            setPrice(initialData.price || 35000);
-            setQuota(initialData.quota || 50);
+            setEntryType(initialData.type_entry || 'destination');
+            setType(initialData.type || DEFAULT_REGION);
+            setPrice(initialData.price ?? 35000);
+            setRevenueShare(initialData.umkm_revenue_share ?? 0);
+            setQuota(initialData.quota ?? 50);
             setStatus(initialData.status || 'Aktif');
             setDescription(initialData.description || '');
-            setImagePreview(initialData.image_url || '/destinasi-jurug-gedhe.jpg');
-            setImageFile(null);
+
+            const initialItems: GalleryItem[] = [];
+
+            // Masukkan SEMUA gambar dari relasi images (karena banner utama sudah disinkronkan di urutan pertama oleh backend)
+            if (initialData.images && initialData.images.length > 0) {
+                initialData.images.forEach(img => {
+                    initialItems.push({
+                        id: img.id, // Pastikan ini murni angka ID dari database
+                        type: 'existing',
+                        url: getFullImageUrl(img.image_url),
+                    });
+                });
+            } else if (initialData.image_url) {
+                // Fallback jika relasi kosong tapi image_url ada
+                initialItems.push({
+                    id: 'banner-fallback',
+                    type: 'existing',
+                    url: getFullImageUrl(initialData.image_url),
+                });
+            }
+
+            setGalleryItems(initialItems);
         } else {
+            // Reset form untuk mode Tambah (Add)
             setName('');
-            setType('Padukuhan Gembyong, Ngoro-Oro');
+            setEntryType('destination');
+            setType(DEFAULT_REGION);
             setPrice(35000);
+            setRevenueShare(0);
             setQuota(50);
             setStatus('Aktif');
             setDescription('');
-            setImagePreview('/destinasi-jurug-gedhe.jpg');
-            setImageFile(null);
+            setGalleryItems([]);
         }
-    }, [initialData]);
+    }, [initialData, isOpen]);
 
     if (!isOpen) return null;
 
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsDragging(true);
+    const handleFilesChange = (files: FileList | File[]) => {
+        const newFiles = Array.from(files);
+        const newItems: GalleryItem[] = newFiles.map(file => ({
+            id: `file-${Date.now()}-${Math.random()}`,
+            type: 'file',
+            url: URL.createObjectURL(file),
+            file: file,
+        }));
+
+        setGalleryItems(prev => [...prev, ...newItems]);
     };
 
-    const handleDragLeave = () => {
-        setIsDragging(false);
+    const handleRemoveImage = (index: number) => {
+        setGalleryItems(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsDragging(false);
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            const file = e.dataTransfer.files[0];
-            setImageFile(file);
-            setImagePreview(URL.createObjectURL(file));
-        }
-    };
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setImageFile(file);
-            setImagePreview(URL.createObjectURL(file));
-        }
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSave({
-            id: initialData ? initialData.id : Date.now(),
-            name,
-            type,
-            price: Number(price),
-            quota: Number(quota),
-            status,
-            description,
-            image_url: imagePreview,
-            image_file: imageFile,
+    // Fungsi reorder yang jauh lebih bersih karena menggunakan 1 state tunggal
+    const handleReorderImages = (dragIndex: number, hoverIndex: number) => {
+        setGalleryItems(prev => {
+            const updated = [...prev];
+            const [movedItem] = updated.splice(dragIndex, 1);
+            updated.splice(hoverIndex, 0, movedItem);
+            return updated;
         });
     };
 
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+
+        try {
+            // Hanya ambil ID yang berupa angka valid dari database (cegah string 'banner-main' ikut terkirim)
+            const validExistingItems = galleryItems.filter(
+                item => item.type === 'existing' && typeof item.id === 'number'
+            );
+
+            const existingImageIds = validExistingItems.map(item => item.id as number);
+            const imageOrders = validExistingItems.map(item => item.id as number);
+
+            const imageFiles = galleryItems
+                .filter(item => item.type === 'file' && item.file)
+                .map(item => item.file as File);
+
+            await onSave({
+                id: initialData ? initialData.id : Date.now(),
+                name,
+                type_entry: entryType,
+                type,
+                price: Number(price) || 0,
+                umkm_revenue_share: Number(revenueShare) || 0,
+                quota: Number(quota) || 0,
+                status,
+                description,
+                image_files: imageFiles,          
+                existing_image_ids: existingImageIds, 
+                image_orders: imageOrders, // Sekarang aman dari string sampah!
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const combinedPreviews = galleryItems.map(item => item.url);
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
-            {/* Kontainer Modal dengan batasan tinggi maks 90vh dan flex layout */}
-            <div className="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden">
-                
-                {/* Header Modal (Tetap di atas) */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white flex-shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
-                            <MapPin className="w-4 h-4" />
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-bold text-slate-900">
-                                {initialData ? 'Edit Destinasi / Paket' : 'Tambah Destinasi Baru'}
-                            </h3>
-                            <p className="text-[11px] text-slate-500">Kelola master data destinasi dan paket wisata</p>
-                        </div>
-                    </div>
-                    <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition">
-                        <X className="w-4 h-4" />
-                    </button>
-                </div>
-
-                {/* Bagian Form yang bisa di-scroll jika layar kecil */}
-                <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-3.5">
-                    {/* Nama Destinasi */}
-                    <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Nama Destinasi / Paket Bundling</label>
-                        <input
-                            type="text"
-                            required
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Contoh: Susur Sungai Jurug Gedhe"
-                            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-600 outline-none transition"
-                        />
-                    </div>
-
-                    {/* Kategori & Harga */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Kategori / Lokasi</label>
-                            <input
-                                type="text"
-                                required
-                                value={type}
-                                onChange={(e) => setType(e.target.value)}
-                                placeholder="Contoh: Padukuhan Gembyong"
-                                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-600 outline-none transition"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Harga Tiket Dasar (Rp)</label>
-                            <input
-                                type="number"
-                                required
-                                value={price}
-                                onChange={(e) => setPrice(Number(e.target.value))}
-                                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-600 outline-none transition"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Kuota & Status EWS */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Kuota Harian (Orang)</label>
-                            <input
-                                type="number"
-                                required
-                                value={quota}
-                                onChange={(e) => setQuota(Number(e.target.value))}
-                                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-600 outline-none transition"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Status Operasional (EWS)</label>
-                            <select
-                                value={status}
-                                onChange={(e) => setStatus(e.target.value as 'Aktif' | 'Darurat Ditutup')}
-                                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-600 outline-none transition"
-                            >
-                                <option value="Aktif">Aktif (Normal)</option>
-                                <option value="Darurat Ditutup">Darurat Ditutup (Siaga EWS)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* Modern Drag & Drop Image Upload */}
-                    <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Foto Banner Destinasi</label>
-                        <div
-                            onDragOver={handleDragOver}
-                            onDragLeave={handleDragLeave}
-                            onDrop={handleDrop}
-                            onClick={() => fileInputRef.current?.click()}
-                            className={`border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition flex flex-col items-center justify-center gap-1.5 relative overflow-hidden group ${
-                                isDragging ? 'border-emerald-600 bg-emerald-50/50' : 'border-slate-200 bg-slate-50 hover:bg-slate-100/60'
-                            }`}
-                        >
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleFileChange}
-                                accept="image/*"
-                                className="hidden"
-                            />
-
-                            {imagePreview ? (
-                                <div className="relative w-full h-28 rounded-xl overflow-hidden shadow-inner group-hover:opacity-90 transition">
-                                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                                    <div className="absolute inset-0 bg-slate-950/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white text-xs font-bold gap-1.5">
-                                        <UploadCloud className="w-4 h-4" />
-                                        <span>Ganti Gambar</span>
-                                    </div>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:scale-110 transition duration-300">
-                                        <UploadCloud className="w-4 h-4" />
-                                    </div>
-                                    <p className="text-[11px] font-bold text-slate-700">
-                                        Seret & letakkan file gambar di sini, atau <span className="text-emerald-700 underline">jelajahi</span>
-                                    </p>
-                                    <p className="text-[9px] text-slate-400">PNG, JPG, WEBP (Maks. 2MB)</p>
-                                </>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Deskripsi Singkat (Diperbesar menjadi rows={4}) */}
-                    <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Deskripsi Singkat Destinasi</label>
-                        <textarea
-                            rows={4}
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder="Tuliskan deskripsi menarik mengenai keindahan destinasi ini..."
-                            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-600 outline-none transition resize-y"
-                        />
-                    </div>
-
-                    {/* Footer Tombol Aksi */}
-                    <div className="pt-3 flex items-center justify-end gap-2.5 border-t border-slate-100 mt-2">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
-                        >
-                            Batal
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-xs font-bold text-white shadow-md shadow-emerald-700/20 transition flex items-center gap-1.5"
-                        >
-                            <CheckCircle2 className="w-4 h-4" />
-                            <span>Simpan</span>
-                        </button>
-                    </div>
-                </form>
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fadeIn">
+            <DestinationFormContent
+                isEdit={!!initialData}
+                name={name}
+                setName={setName}
+                entryType={entryType}
+                setEntryType={setEntryType}
+                type={type}
+                setType={setType}
+                price={price}
+                setPrice={setPrice}
+                revenueShare={revenueShare}
+                setRevenueShare={setRevenueShare}
+                quota={quota}
+                setQuota={setQuota}
+                status={status}
+                setStatus={setStatus}
+                description={description}
+                setDescription={setDescription}
+                imagePreviews={combinedPreviews}
+                isDragging={isDragging}
+                setIsDragging={setIsDragging}
+                onFilesChange={handleFilesChange}
+                onRemoveImage={handleRemoveImage}
+                onReorderImages={handleReorderImages}
+                onSubmit={handleSubmit}
+                onClose={onClose}
+                isLoading={isLoading}
+            />
         </div>
     );
 }

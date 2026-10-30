@@ -45,7 +45,7 @@ export default function PaymentModal({
             <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden">
                 
                 {/* Header Modal yang Informatif */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+                <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
                     <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
                             Konfirmasi Pembayaran
@@ -60,8 +60,11 @@ export default function PaymentModal({
                     </button>
                 </div>
 
-                {/* Body Modal */}
-                <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6">
+                {/* Body Modal dengan Custom Scrollbar Halus */}
+                <form 
+                    onSubmit={handleSubmit} 
+                    className="p-6 overflow-y-auto space-y-6 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-300"
+                >
                     
                     {/* Ringkasan Informasi Destinasi & Total Tagihan */}
                     <div className="bg-gradient-to-br from-emerald-900 to-emerald-800 rounded-2xl p-5 text-white shadow-lg shadow-emerald-900/10 space-y-3">
@@ -198,7 +201,7 @@ export default function PaymentModal({
                     </div>
 
                     {/* Tombol Aksi Bawah */}
-                    <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                    <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3 flex-shrink-0">
                         <button
                             type="button"
                             onClick={onClose}

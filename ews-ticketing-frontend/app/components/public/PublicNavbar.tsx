@@ -99,12 +99,10 @@ function NavbarContent() {
         } catch (error) {
             console.error('Logout error:', error);
         } finally {
-            // Hapus data dari LocalStorage
             localStorage.removeItem('token');
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
 
-            // Hapus Cookie
             document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
             document.cookie = 'user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
 
@@ -114,6 +112,30 @@ function NavbarContent() {
             setIsDropdownOpen(false);
             toast.success('Berhasil keluar dari akun.');
             router.push('/');
+        }
+    };
+
+    // Fungsi Handle Klik Navigasi dengan Smooth Scroll
+    const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, hash: string) => {
+        setActiveHash(hash);
+
+        // Jika kita sedang berada di halaman utama ('/')
+        if (pathname === '/') {
+            if (hash === '') {
+                // Scroll ke paling atas beranda
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                window.history.pushState(null, '', '/');
+            } else {
+                // Cari elemen berdasarkan id (buang tanda '#')
+                const targetId = hash.replace('#', '');
+                const element = document.getElementById(targetId);
+                if (element) {
+                    e.preventDefault();
+                    element.scrollIntoView({ behavior: 'smooth' });
+                    window.history.pushState(null, '', hash);
+                }
+            }
         }
     };
 
@@ -152,7 +174,7 @@ function NavbarContent() {
                             🌿
                         </div>
                         <div>
-                            <h1 className="font-extrabold text-base text-slate-900 tracking-tight">Ngoro-Oro</h1>
+                            <h1 className="font-extrabold text-base text-slate-900 tracking-tight">SmartMandala</h1>
                             <p className="text-[10px] text-slate-500 font-medium">Wisata Alam • Kuliner • UMKM</p>
                         </div>
                     </Link>
@@ -166,8 +188,8 @@ function NavbarContent() {
                                 <Link 
                                     key={link.name} 
                                     href={link.href} 
-                                    onClick={() => setActiveHash(link.hash)}
-                                    className={`transition pb-1 ${
+                                    onClick={(e) => handleNavClick(e, link.hash)}
+                                    className={`transition pb-1 cursor-pointer ${
                                         active 
                                             ? 'text-emerald-700 font-bold border-b-2 border-emerald-700' 
                                             : 'hover:text-emerald-700 text-slate-600'
@@ -181,11 +203,6 @@ function NavbarContent() {
 
                     {/* Right Actions */}
                     <div className="flex items-center gap-3">
-                        <button className="p-2 text-slate-600 hover:bg-slate-100 rounded-full transition" title="Cari">
-                            <Search className="w-4 h-4" />
-                        </button>
-
-                        {/* Jika Sudah Login */}
                         {currentUser ? (
                             <div className="relative pl-2 border-l border-slate-200" ref={dropdownRef}>
                                 <button
