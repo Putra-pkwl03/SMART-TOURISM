@@ -5,7 +5,12 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:3000'], // Ubah atau tambahkan URL Frontend Anda di sini
+    'allowed_origins' => [
+        'https://smartmdl.com',
+        'https://www.smartmdl.com',
+        'http://localhost:3000',
+        
+    ], 
 
     'allowed_origins_patterns' => [],
 
