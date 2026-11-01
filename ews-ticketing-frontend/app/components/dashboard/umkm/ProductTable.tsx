@@ -51,6 +51,8 @@ export default function ProductTable({
         }
     };
 
+    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+
     if (loading) {
         return (
             <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-xs">
@@ -188,7 +190,7 @@ export default function ProductTable({
                                                                 <div className="space-y-2">
                                                                     <div className="w-full h-44 rounded-xl overflow-hidden border border-gray-200 bg-gray-100 shadow-inner">
                                                                         <img 
-                                                                            src={`http://127.0.0.1:8000/storage/${item.images[currentImgIdx]?.image_path}`} 
+                                                                            src={`${BACKEND_URL}/storage/${item.images[currentImgIdx]?.image_path}`} 
                                                                             alt={item.name} 
                                                                             className="w-full h-full object-cover"
                                                                         />
@@ -196,15 +198,15 @@ export default function ProductTable({
                                                                     {item.images.length > 1 && (
                                                                         <div className="grid grid-cols-4 gap-1.5">
                                                                             {item.images.map((img: any, idx: number) => (
-                                                                                <button
-                                                                                    key={idx}
-                                                                                    onClick={(e) => handleSelectImage(item.id, idx, e)}
-                                                                                    className={`relative aspect-square rounded-lg overflow-hidden border-2 transition cursor-pointer ${
-                                                                                        currentImgIdx === idx ? 'border-indigo-600 ring-2 ring-indigo-500/20' : 'border-gray-200 opacity-60 hover:opacity-100'
-                                                                                    }`}
-                                                                                >
-                                                                                    <img src={`http://127.0.0.1:8000/storage/${img.image_path}`} alt="Thumb" className="w-full h-full object-cover" />
-                                                                                </button>
+                                                                               <button
+                                                                                key={idx}
+                                                                                onClick={(e) => handleSelectImage(item.id, idx, e)}
+                                                                                className={`relative aspect-square rounded-lg overflow-hidden border-2 transition cursor-pointer ${
+                                                                                    currentImgIdx === idx ? 'border-indigo-600 ring-2 ring-indigo-500/20' : 'border-gray-200 opacity-60 hover:opacity-100'
+                                                                                }`}
+                                                                            >
+                                                                                <img src={`${BACKEND_URL}/storage/${img.image_path}`} alt="Thumb" className="w-full h-full object-cover" />
+                                                                            </button>
                                                                             ))}
                                                                         </div>
                                                                     )}

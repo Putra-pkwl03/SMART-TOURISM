@@ -40,7 +40,7 @@ export default function AdminTicketsPage() {
     const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
     const [rejectionReason, setRejectionReason] = useState('');
 
-    const BACKEND_URL = 'http://127.0.0.1:8000';
+    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
 
     const fetchTickets = async () => {
         try {

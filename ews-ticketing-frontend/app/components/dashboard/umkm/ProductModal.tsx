@@ -36,8 +36,10 @@ export default function ProductModal({ isOpen, onClose, onSuccess, productToEdit
             
             if (productToEdit.images && productToEdit.images.length > 0) {
                 // Simpan objek gambar asli beserta URL-nya untuk pelacakan ID
+              const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+
                 const existingPreviews = productToEdit.images.map(
-                    (img: any) => `http://127.0.0.1:8000/storage/${img.image_path}`
+                    (img: any) => `${BACKEND_URL}/storage/${img.image_path}`
                 );
                 setImagePreviews(existingPreviews);
             } else {
