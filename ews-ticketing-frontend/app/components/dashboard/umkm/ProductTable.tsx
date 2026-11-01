@@ -103,15 +103,15 @@ export default function ProductTable({
                                     >
                                         <td className="py-4 px-4 font-bold text-gray-900 flex items-center gap-3">
                                             <div className="w-11 h-11 bg-gray-100 rounded-2xl flex items-center justify-center border border-gray-200 overflow-hidden shrink-0 shadow-inner">
-                                                {item.images && item.images.length > 0 ? (
-                                                    <img 
-                                                        src={`http://127.0.0.1:8000/storage/${item.images[0].image_path}`} 
-                                                        alt={item.name} 
-                                                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                                                    />
-                                                ) : (
-                                                    <Package className="w-5 h-5 text-gray-400" />
-                                                )}
+                                               {item.images && item.images.length > 0 ? (
+                                                <img 
+                                                    src={`${BACKEND_URL}/storage/${item.images[0].image_path}`} 
+                                                    alt={item.name} 
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                                                />
+                                            ) : (
+                                                <Package className="w-5 h-5 text-gray-400" />
+                                            )}
                                             </div>
                                             <div>
                                                 <span className="max-w-xs truncate block group-hover:text-indigo-600 transition">{item.name}</span>
