@@ -1,21 +1,51 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Edit, Trash2, CheckCircle2, AlertTriangle, ImageIcon, Layers, ChevronDown, ChevronUp, MapPin } from 'lucide-react';
+import { 
+    Edit2, 
+    Trash2, 
+    AlertTriangle, 
+    ImageIcon, 
+    ChevronUp, 
+    ChevronDown, 
+    MapPin, 
+    Package, 
+    FileText,
+    Boxes,
+    Info
+} from 'lucide-react';
 
-interface DestinationItem {
+export interface UmkmProduct {
     id: number;
     name: string;
-    type_entry?: 'destination' | 'package';
+    price: number;
+    image_url?: string;
+    image_path?: string;
+    image?: string;
+    images?: any[];
+}
+
+export interface DestinationImage {
+    id: number;
+    image_url?: string;
+    image_path?: string;
+    is_primary?: boolean;
+}
+
+export interface DestinationItem {
+    id: number;
+    name: string;
+    type_entry: string;
     type: string;
     price: number;
-    umkm_revenue_share?: number;
     quota: number;
     status: 'Aktif' | 'Darurat Ditutup';
     description?: string;
     image_url?: string;
+    images?: DestinationImage[];
     image_files?: File[];
-    images?: { id: number; image_url: string }[];
+    umkm_products?: UmkmProduct[];
+    umkm_revenue_share?: number;
 }
 
 interface DestinationTableRowProps {
@@ -38,20 +68,31 @@ export default function DestinationTableRow({
     onCloseDetail,
 }: DestinationTableRowProps) {
     
-   // Helper untuk mengambil base URL backend dari .env.local secara aman
     const getFullImageUrl = (url?: string) => {
         if (!url) return '';
         if (url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://')) {
             return url;
         }
-
-        // Mengambil dari .env.local, hilangkan trailing slash jika ada agar tidak double slash
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
-        
-        return `${backendUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+        const cleanPath = url.startsWith('/') ? url : `/${url}`;
+        const finalPath = cleanPath.startsWith('/storage') ? cleanPath : `/storage/${url.replace(/^\/+/, '')}`;
+        return `${backendUrl}${finalPath}`;
     };
 
-    // Gunakan useMemo agar URL objek stabil dan tidak dibuat ulang secara acak saat re-render
+    // Helper untuk mengambil gambar produk UMKM dari relasi images Laravel
+    const getProductImageUrl = (prod: UmkmProduct & { images?: { image_url?: string; image_path?: string }[] }) => {
+        if (!prod) return '';
+        
+        if (prod.images && prod.images.length > 0) {
+            const primaryImg = prod.images.find((img: any) => img.is_primary) || prod.images[0];
+            const rawPath = primaryImg.image_url || primaryImg.image_path || '';
+            return getFullImageUrl(rawPath);
+        }
+
+        const rawPath = prod.image_url || prod.image_path || prod.image || '';
+        return getFullImageUrl(rawPath);
+    };
+
     const allImages = useMemo(() => {
         const urls: string[] = [];
         if (item.image_url) {
@@ -59,8 +100,9 @@ export default function DestinationTableRow({
         }
         if (item.images && item.images.length > 0) {
             item.images.forEach(img => {
-                if (img.image_url) {
-                    const formattedUrl = getFullImageUrl(img.image_url);
+                const targetUrl = img.image_url || img.image_path;
+                if (targetUrl) {
+                    const formattedUrl = getFullImageUrl(targetUrl);
                     if (!urls.includes(formattedUrl)) {
                         urls.push(formattedUrl);
                     }
@@ -75,6 +117,10 @@ export default function DestinationTableRow({
         return urls;
     }, [item.image_url, item.images, item.image_files]);
 
+    const isActive = item.status === 'Aktif';
+    const totalUmkmProducts = item.umkm_products?.length || 0;
+    const isBundling = totalUmkmProducts > 0;
+
     return (
         <>
             {/* Baris Utama Tabel */}
@@ -83,20 +129,12 @@ export default function DestinationTableRow({
                 className={`transition cursor-pointer group ${
                     isExpanded ? 'bg-emerald-50/40' : 'hover:bg-slate-50/60'
                 }`}
-                title="Klik untuk melihat detail & galeri di bawah"
             >
-                <td className="p-4">
+                <td className="py-4 px-5">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-slate-100 overflow-hidden relative flex-shrink-0 border border-slate-200 shadow-sm">
+                        <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden relative flex-shrink-0 border border-slate-200">
                             {allImages.length > 0 ? (
-                                <>
-                                    <img src={allImages[0]} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition" />
-                                    {allImages.length > 1 && (
-                                        <div className="absolute inset-0 bg-slate-950/50 flex items-center justify-center text-white text-[10px] font-bold">
-                                            +{allImages.length - 1}
-                                        </div>
-                                    )}
-                                </>
+                                <img src={allImages[0]} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-slate-400">
                                     <ImageIcon className="w-5 h-5" />
@@ -104,139 +142,215 @@ export default function DestinationTableRow({
                             )}
                         </div>
                         <div>
-                            <span className="font-bold text-slate-900 block max-w-[200px] truncate" title={item.name}>
-                                {item.name}
-                            </span>
-                            <span className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-                                ID: #{item.id} • {allImages.length} Foto
-                                {isExpanded ? <ChevronUp className="w-3 h-3 text-emerald-600 ml-1" /> : <ChevronDown className="w-3 h-3 text-slate-400 ml-1" />}
-                            </span>
+                            <div className="font-bold text-slate-900 text-sm">{item.name}</div>
+                            <div className="text-[11px] text-slate-400 mt-0.5">Paket Wisata (Klik untuk detail)</div>
                         </div>
                     </div>
                 </td>
 
-                <td className="p-4">
+                <td className="py-4 px-4">
                     <div className="space-y-1">
-                        <span className={`px-2 py-0.5 rounded-md font-bold text-[9px] uppercase inline-block ${
-                            item.type_entry === 'package' 
-                                ? 'bg-emerald-100 text-emerald-800' 
-                                : 'bg-blue-100 text-blue-800'
-                        }`}>
-                            {item.type_entry === 'package' ? 'Paket Bundling UMKM' : 'Tiket Murni'}
-                        </span>
-                        <p className="text-slate-600 font-medium text-[11px]">{item.type}</p>
-                    </div>
-                </td>
-
-                <td className="p-4">
-                    <div className="space-y-0.5">
-                        <span className="font-extrabold text-emerald-700 text-xs block">
-                            Rp {item.price?.toLocaleString('id-ID')}
-                        </span>
-                        {item.type_entry === 'package' && item.umkm_revenue_share ? (
-                            <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
-                                <Layers className="w-3 h-3" />
-                                UMKM: Rp {Number(item.umkm_revenue_share).toLocaleString('id-ID')}
+                        {isBundling ? (
+                            <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase tracking-wide">
+                                PAKET BUNDLING UMKM
                             </span>
-                        ) : null}
+                        ) : (
+                            <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 uppercase tracking-wide border border-slate-200">
+                                PAKET WISATA BIASA
+                            </span>
+                        )}
+                        <div className="text-slate-500 text-[11px] font-medium">
+                            {item.type}
+                        </div>
                     </div>
                 </td>
 
-                <td className="p-4 font-medium">{item.quota} Orang</td>
-
-                <td className="p-4">
-                    <span className={`px-3 py-1 rounded-full font-bold text-[10px] uppercase inline-flex items-center gap-1 ${
-                        item.status === 'Aktif' 
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                            : 'bg-red-50 text-red-700 border border-red-200 animate-pulse'
-                    }`}>
-                        {item.status === 'Aktif' ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
-                        {item.status}
-                    </span>
+                <td className="py-4 px-4">
+                    <div className="font-bold text-slate-900 text-sm">
+                        Rp {item.price?.toLocaleString('id-ID')}
+                    </div>
                 </td>
 
-                <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-center gap-1.5">
+                <td className="py-4 px-4 font-medium text-slate-600">
+                    {item.quota} Orang
+                </td>
+
+                <td className="py-4 px-4">
+                    {isActive ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                            Aktif
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-red-50 text-red-700 border border-red-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+                            Darurat Ditutup
+                        </span>
+                    )}
+                </td>
+
+                <td className="py-4 px-5 text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-2">
                         <button
                             onClick={() => onToggleStatus(item.id)}
-                            title="Ubah Status Darurat EWS"
-                            className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition shadow-sm ${
-                                item.status === 'Aktif'
-                                    ? 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
-                                    : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition border cursor-pointer ${
+                                isActive 
+                                    ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200' 
+                                    : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
                             }`}
+                            title="Ubah Status Darurat EWS"
                         >
-                            {item.status === 'Aktif' ? 'Tutup Darurat' : 'Buka Normal'}
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                            <span>{isActive ? 'Tutup Darurat' : 'Buka Normal'}</span>
                         </button>
-                        <button 
+
+                        <button
                             onClick={() => onEdit(item)}
-                            className="p-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition"
-                            title="Edit Data"
+                            className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition cursor-pointer"
+                            title="Edit Destinasi"
                         >
-                            <Edit className="w-4 h-4" />
+                            <Edit2 className="w-4 h-4" />
                         </button>
-                        <button 
+
+                        <button
                             onClick={(e) => onDeleteClick(item, e)}
-                            className="p-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-red-50 hover:text-red-600 transition"
-                            title="Hapus"
+                            className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition cursor-pointer"
+                            title="Hapus Destinasi"
                         >
                             <Trash2 className="w-4 h-4" />
+                        </button>
+
+                        <button
+                            onClick={() => onToggleExpand(item.id)}
+                            className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition cursor-pointer ml-1"
+                            title={isExpanded ? "Sembunyikan Detail" : "Lihat Detail"}
+                        >
+                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </button>
                     </div>
                 </td>
             </tr>
 
-            {/* Baris Detail Expandable di Bawah (Multi Galeri & Deskripsi) */}
+            {/* Bagian Detail Accordion (Expandable) dengan Layout Modern Grid Samping-Sampingan */}
             {isExpanded && (
-                <tr className="bg-slate-50/80 border-b border-slate-200">
+                <tr className="bg-slate-50/80">
                     <td colSpan={6} className="p-5">
-                        <div className="space-y-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-inner">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
-                                        <MapPin className="w-3.5 h-3.5" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-slate-900 text-xs">Detail & Galeri Foto: {item.name}</h4>
-                                        <p className="text-[10px] text-slate-500">Lokasi: {item.type}</p>
-                                    </div>
-                                </div>
+                        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+                            
+                            {/* Header Informasi & Tombol Sembunyikan */}
+                            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                                    Detail Informasi ({isBundling ? 'Paket Bundling UMKM' : 'Paket Wisata Biasa'})
+                                </h3>
+                                
                                 <button 
                                     onClick={onCloseDetail}
-                                    className="text-slate-400 hover:text-slate-600 text-[11px] font-bold px-2.5 py-1 bg-slate-100 rounded-lg transition"
+                                    className="text-xs text-slate-500 hover:text-slate-800 font-semibold flex items-center gap-1.5 transition px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 cursor-pointer"
                                 >
-                                    Tutup Detail ▲
+                                    <span>Sembunyikan</span>
+                                    <span>✕</span>
                                 </button>
                             </div>
 
-                            {/* Deskripsi */}
-                            <div>
-                                <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Deskripsi / Fasilitas</h5>
-                                <p className="text-xs text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                    {item.description || 'Tidak ada deskripsi tambahan untuk item ini.'}
-                                </p>
+                            {/* Layout 3 Card Berjajar Horizontal */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                
+                                {/* Card 1: Lokasi Destinasi */}
+                                <div className="flex items-start gap-3 p-4 bg-slate-50/60 rounded-xl border border-slate-100 shadow-xs">
+                                    <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg mt-0.5 border border-emerald-100 flex-shrink-0">
+                                        <MapPin className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Lokasi Destinasi</h4>
+                                        <p className="text-xs font-semibold text-slate-800 mt-0.5">{item.type}</p>
+                                    </div>
+                                </div>
+
+                                {/* Card 2: Status Bundling / Jumlah Produk */}
+                                <div className="flex items-start gap-3 p-4 bg-slate-50/60 rounded-xl border border-slate-100 shadow-xs">
+                                    <div className={`p-2 rounded-lg mt-0.5 border flex-shrink-0 ${isBundling ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                                        {isBundling ? <Boxes className="w-4 h-4" /> : <Info className="w-4 h-4" />}
+                                    </div>
+                                    <div>
+                                        <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Jenis Paket</h4>
+                                        <p className="text-xs font-semibold text-slate-800 mt-0.5">
+                                            {isBundling ? `${totalUmkmProducts} Produk UMKM Terdaftar` : 'Paket Wisata Biasa (Tanpa Produk)'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Card 3: Deskripsi & Fasilitas */}
+                                <div className="flex items-start gap-3 p-4 bg-slate-50/60 rounded-xl border border-slate-100 shadow-xs">
+                                    <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg mt-0.5 border border-emerald-100 flex-shrink-0">
+                                        <FileText className="w-4 h-4" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Deskripsi & Fasilitas</h4>
+                                        <p className="text-xs text-slate-700 mt-0.5 leading-relaxed line-clamp-3">
+                                            {item.description || 'Belum ada deskripsi yang ditambahkan.'}
+                                        </p>
+                                    </div>
+                                </div>
+
                             </div>
 
-                            {/* Grid Galeri Multi-Foto */}
-                            <div>
-                                <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                                    Galeri Foto ({allImages.length} Foto Tersedia)
-                                </h5>
-                                {allImages.length > 0 ? (
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
-                                        {allImages.map((src, idx) => (
-                                            <div key={`${src}-${idx}`} className="relative h-24 rounded-xl overflow-hidden border border-slate-200 shadow-sm group">
-                                                <img src={src} alt={`Galeri ${idx}`} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-                                                <span className="absolute bottom-1 right-1 bg-slate-900/60 text-white text-[9px] px-1.5 py-0.5 rounded font-bold">
-                                                    #{idx + 1}
-                                                </span>
-                                            </div>
-                                        ))}
+                            {/* Produk UMKM dalam Paket (Hanya muncul jika ada produknya) */}
+                            {isBundling && (
+                                <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-100 space-y-3">
+                                    <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs">
+                                        <Package className="w-4 h-4 text-emerald-700" />
+                                        <span>Produk UMKM dalam Paket</span>
                                     </div>
-                                ) : (
-                                    <p className="text-xs text-slate-400 italic">Belum ada foto galeri yang diunggah untuk item ini.</p>
-                                )}
+                                    
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                        {item.umkm_products!.map((prod) => {
+                                            const prodImgUrl = getProductImageUrl(prod);
+                                            return (
+                                                <div key={prod.id} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-emerald-100 shadow-xs">
+                                                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0 border border-slate-200">
+                                                        {prodImgUrl ? (
+                                                            <img src={prodImgUrl} alt={prod.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                                                <ImageIcon className="w-4 h-4" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold text-slate-800 text-xs">{prod.name}</div>
+                                                        <div className="text-[11px] font-semibold text-emerald-700 mt-0.5">
+                                                            Rp {Number(prod.price)?.toLocaleString('id-ID')}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Galeri Foto Destinasi */}
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-slate-800 font-bold text-xs">
+                                        <ImageIcon className="w-4 h-4 text-slate-600" />
+                                        <span>Galeri Foto Destinasi</span>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                    {allImages.length > 0 ? (
+                                        allImages.map((src, idx) => (
+                                            <div key={idx} className="h-28 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 relative group">
+                                                <img src={src} alt={`Galeri ${idx}`} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-xs text-slate-400 italic">Tidak ada foto galeri tambahan.</p>
+                                    )}
+                                </div>
                             </div>
+
                         </div>
                     </td>
                 </tr>

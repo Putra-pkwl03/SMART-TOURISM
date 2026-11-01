@@ -2,28 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import DestinationFormContent from './DestinationFormContent';
+import { apiClient } from '@/app/lib/axios';
+import { DestinationItem } from './DestinationTable'; 
 
 interface GalleryItem {
-    id: string | number; // Bisa 'banner-main', id database (number), atau file id unik (string)
+    id: string | number; 
     type: 'existing' | 'file';
-    url: string; // URL preview (baik URL backend atau URL.createObjectURL)
-    file?: File; // File asli jika tipenya adalah upload baru
-}
-
-interface DestinationItem {
-    id: number;
-    name: string;
-    type_entry?: 'destination' | 'package';
-    type: string;
-    price: number;
-    umkm_revenue_share?: number;
-    quota: number;
-    status: 'Aktif' | 'Darurat Ditutup';
-    description?: string;
-    image_url?: string;
-    image_file?: File | null;
-    image_files?: File[];
-    images?: { id: number; image_url: string }[];
+    url: string; 
+    file?: File; 
 }
 
 interface DestinationModalProps {
@@ -40,12 +26,14 @@ export default function DestinationModal({ isOpen, onClose, onSave, initialData 
     const [entryType, setEntryType] = useState<'destination' | 'package'>('destination');
     const [type, setType] = useState(DEFAULT_REGION);
     const [price, setPrice] = useState<number | ''>(35000);
-    const [revenueShare, setRevenueShare] = useState<number | ''>(0);
     const [quota, setQuota] = useState<number | ''>(50);
     const [status, setStatus] = useState<'Aktif' | 'Darurat Ditutup'>('Aktif');
     const [description, setDescription] = useState('');
     
-    // Gunakan 1 state gabungan untuk galeri agar aman saat digeser-geser
+    // State untuk fitur Bundling UMKM
+    const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
+
+    // Galeri foto
     const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
     const [isDragging, setIsDragging] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -62,27 +50,32 @@ export default function DestinationModal({ isOpen, onClose, onSave, initialData 
     useEffect(() => {
         if (initialData) {
             setName(initialData.name || '');
-            setEntryType(initialData.type_entry || 'destination');
+            setEntryType((initialData.type_entry as 'destination' | 'package') || 'destination');
             setType(initialData.type || DEFAULT_REGION);
             setPrice(initialData.price ?? 35000);
-            setRevenueShare(initialData.umkm_revenue_share ?? 0);
             setQuota(initialData.quota ?? 50);
             setStatus(initialData.status || 'Aktif');
             setDescription(initialData.description || '');
 
+            if (initialData.umkm_products && initialData.umkm_products.length > 0) {
+                setSelectedProductIds(initialData.umkm_products.map(p => p.id));
+            } else {
+                setSelectedProductIds([]);
+            }
+
             const initialItems: GalleryItem[] = [];
 
-            // Masukkan SEMUA gambar dari relasi images (karena banner utama sudah disinkronkan di urutan pertama oleh backend)
             if (initialData.images && initialData.images.length > 0) {
                 initialData.images.forEach(img => {
-                    initialItems.push({
-                        id: img.id, // Pastikan ini murni angka ID dari database
-                        type: 'existing',
-                        url: getFullImageUrl(img.image_url),
-                    });
+                    if (img.image_url || img.image_path) {
+                        initialItems.push({
+                            id: img.id, 
+                            type: 'existing',
+                            url: getFullImageUrl(img.image_url || img.image_path),
+                        });
+                    }
                 });
             } else if (initialData.image_url) {
-                // Fallback jika relasi kosong tapi image_url ada
                 initialItems.push({
                     id: 'banner-fallback',
                     type: 'existing',
@@ -92,15 +85,14 @@ export default function DestinationModal({ isOpen, onClose, onSave, initialData 
 
             setGalleryItems(initialItems);
         } else {
-            // Reset form untuk mode Tambah (Add)
             setName('');
             setEntryType('destination');
             setType(DEFAULT_REGION);
             setPrice(35000);
-            setRevenueShare(0);
             setQuota(50);
             setStatus('Aktif');
             setDescription('');
+            setSelectedProductIds([]);
             setGalleryItems([]);
         }
     }, [initialData, isOpen]);
@@ -123,7 +115,6 @@ export default function DestinationModal({ isOpen, onClose, onSave, initialData 
         setGalleryItems(prev => prev.filter((_, i) => i !== index));
     };
 
-    // Fungsi reorder yang jauh lebih bersih karena menggunakan 1 state tunggal
     const handleReorderImages = (dragIndex: number, hoverIndex: number) => {
         setGalleryItems(prev => {
             const updated = [...prev];
@@ -138,7 +129,6 @@ export default function DestinationModal({ isOpen, onClose, onSave, initialData 
         setIsLoading(true);
 
         try {
-            // Hanya ambil ID yang berupa angka valid dari database (cegah string 'banner-main' ikut terkirim)
             const validExistingItems = galleryItems.filter(
                 item => item.type === 'existing' && typeof item.id === 'number'
             );
@@ -156,13 +146,13 @@ export default function DestinationModal({ isOpen, onClose, onSave, initialData 
                 type_entry: entryType,
                 type,
                 price: Number(price) || 0,
-                umkm_revenue_share: Number(revenueShare) || 0,
                 quota: Number(quota) || 0,
                 status,
                 description,
                 image_files: imageFiles,          
                 existing_image_ids: existingImageIds, 
-                image_orders: imageOrders, // Sekarang aman dari string sampah!
+                image_orders: imageOrders,
+                umkm_product_ids: selectedProductIds,
             });
         } finally {
             setIsLoading(false);
@@ -172,35 +162,37 @@ export default function DestinationModal({ isOpen, onClose, onSave, initialData 
     const combinedPreviews = galleryItems.map(item => item.url);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fadeIn">
-            <DestinationFormContent
-                isEdit={!!initialData}
-                name={name}
-                setName={setName}
-                entryType={entryType}
-                setEntryType={setEntryType}
-                type={type}
-                setType={setType}
-                price={price}
-                setPrice={setPrice}
-                revenueShare={revenueShare}
-                setRevenueShare={setRevenueShare}
-                quota={quota}
-                setQuota={setQuota}
-                status={status}
-                setStatus={setStatus}
-                description={description}
-                setDescription={setDescription}
-                imagePreviews={combinedPreviews}
-                isDragging={isDragging}
-                setIsDragging={setIsDragging}
-                onFilesChange={handleFilesChange}
-                onRemoveImage={handleRemoveImage}
-                onReorderImages={handleReorderImages}
-                onSubmit={handleSubmit}
-                onClose={onClose}
-                isLoading={isLoading}
-            />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fadeIn overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-auto">
+                <DestinationFormContent
+                    isEdit={!!initialData}
+                    name={name}
+                    setName={setName}
+                    entryType={entryType}
+                    setEntryType={setEntryType}
+                    type={type}
+                    setType={setType}
+                    price={price}
+                    setPrice={setPrice}
+                    quota={quota}
+                    setQuota={setQuota}
+                    status={status}
+                    setStatus={setStatus}
+                    description={description}
+                    setDescription={setDescription}
+                    imagePreviews={combinedPreviews}
+                    isDragging={isDragging}
+                    setIsDragging={setIsDragging}
+                    onFilesChange={handleFilesChange}
+                    onRemoveImage={handleRemoveImage}
+                    onReorderImages={handleReorderImages}
+                    onSubmit={handleSubmit}
+                    onClose={onClose}
+                    isLoading={isLoading}
+                    selectedProductIds={selectedProductIds}
+                    setSelectedProductIds={setSelectedProductIds}
+                />
+            </div>
         </div>
     );
 }

@@ -10,22 +10,46 @@ export function middleware(request: NextRequest) {
     const isAuthUserPage = pathname.startsWith('/auth/users/login');
     const isDashboardPage = pathname.startsWith('/dashboard');
 
-    // 1. Jika BELUM LOGIN mencoba akses dashboard -> Tendang ke login admin
+    // 1. Jika BELUM LOGIN mencoba akses dashboard -> Tendang ke login
     if (isDashboardPage && !token) {
         return NextResponse.redirect(new URL('/auth/login', request.url));
     }
 
-    // 2. Proteksi role jika VISITOR mencoba akses /dashboard -> Lempar ke beranda
-    if (isDashboardPage && role === 'visitor') {
-        return NextResponse.redirect(new URL('/', request.url));
+    // 2. Proteksi & Pembatasan Akses Berdasarkan Role di dalam /dashboard (Strict / Masing-masing Role)
+    if (isDashboardPage && token) {
+        // Jika visitor mencoba akses dashboard -> Lempar ke beranda
+        if (role === 'visitor') {
+            return NextResponse.redirect(new URL('/', request.url));
+        }
+
+        // A. Proteksi Halaman UMKM (/dashboard/umkm) - HANYA untuk umkm_mitra
+        if (pathname.startsWith('/dashboard/umkm') && role !== 'umkm_mitra') {
+            if (role === 'admin') return NextResponse.redirect(new URL('/dashboard/admin', request.url));
+            if (role === 'ticketing_officer') return NextResponse.redirect(new URL('/dashboard/loket', request.url));
+            return NextResponse.redirect(new URL('/auth/login', request.url));
+        }
+
+        // B. Proteksi Halaman Loket (/dashboard/loket atau /dashboard/officer) - HANYA untuk ticketing_officer
+        if ((pathname.startsWith('/dashboard/loket') || pathname.startsWith('/dashboard/officer')) && role !== 'ticketing_officer') {
+            if (role === 'admin') return NextResponse.redirect(new URL('/dashboard/admin', request.url));
+            if (role === 'umkm_mitra') return NextResponse.redirect(new URL('/dashboard/umkm', request.url));
+            return NextResponse.redirect(new URL('/auth/login', request.url));
+        }
+
+        // C. Proteksi Halaman Admin Utama (/dashboard/admin) - HANYA untuk admin
+        if (pathname.startsWith('/dashboard/admin') && role !== 'admin') {
+            if (role === 'ticketing_officer') return NextResponse.redirect(new URL('/dashboard/loket', request.url));
+            if (role === 'umkm_mitra') return NextResponse.redirect(new URL('/dashboard/umkm', request.url));
+            return NextResponse.redirect(new URL('/auth/login', request.url));
+        }
     }
 
-    // 3. Jika SUDAH LOGIN membuka halaman login admin/user -> Alihkan sesuai role
+    // 3. Jika SUDAH LOGIN membuka halaman login -> Alihkan sesuai role masing-masing
     if ((isAuthAdminPage || isAuthUserPage) && token) {
         if (role === 'admin') {
             return NextResponse.redirect(new URL('/dashboard/admin', request.url));
         } else if (role === 'ticketing_officer') {
-            return NextResponse.redirect(new URL('/dashboard/loket/scanner', request.url));
+            return NextResponse.redirect(new URL('/dashboard/loket', request.url));
         } else if (role === 'umkm_mitra') {
             return NextResponse.redirect(new URL('/dashboard/umkm', request.url));
         } else if (role === 'visitor') {

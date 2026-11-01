@@ -11,14 +11,12 @@ class Destination extends Model
 
     protected $fillable = [
         'name',
-        'type',                // Penanda tipe: 'destination' (tiket murni) atau 'package' (paket bundling)
+        'type',              
         'description',
         'location',
         'ticket_price',
-        'umkm_revenue_share',  // Porsi estimasi bagi hasil untuk UMKM Sedyo Maju
         'image_url',
         'is_active',
-
     ];
 
     public function images()
@@ -27,8 +25,13 @@ class Destination extends Model
     }
 
     /**
-     * Relasi ke transaksi tiket yang dipesan
+     * Relasi ke Produk UMKM (Bundling Paket Wisata)
      */
+    public function umkmProducts()
+    {
+        return $this->belongsToMany(UmkmProduct::class, 'destination_umkm_products', 'destination_id', 'umkm_product_id');
+    }
+
     public function tickets()
     {
         return $this->hasMany(Ticket::class);

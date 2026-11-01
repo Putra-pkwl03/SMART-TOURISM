@@ -18,7 +18,6 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('location'); // misal: Padukuhan Gembyong, Ngoro-Oro[cite: 7]
             $table->integer('ticket_price'); // Harga dasar tiket atau total harga paket bundling
-            $table->decimal('umkm_revenue_share', 10, 2)->default(0); // Estimasi porsi bagi hasil konsinyasi untuk UMKM Sedyo Maju
             $table->string('image_url')->nullable();
             $table->boolean('is_active')->default(true); // Status operasional (bisa ditutup darurat via EWS)
             $table->timestamps();

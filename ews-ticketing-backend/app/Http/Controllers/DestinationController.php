@@ -11,7 +11,8 @@ class DestinationController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Destination::with('images'); // Load relasi multi-gambar
+        // PERBAIKAN: Sertakan 'umkmProducts.images' agar relasi foto produk UMKM ikut terkirim
+        $query = Destination::with(['images', 'umkmProducts.images']); 
 
         if ($request->has('type')) {
             $query->where('type', $request->input('type'));
@@ -32,16 +33,16 @@ class DestinationController extends Controller
             'description' => 'nullable|string',
             'location' => 'required|string|max:255',
             'ticket_price' => 'required|integer|min:0',
-            'umkm_revenue_share' => 'nullable|numeric|min:0',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // Banner utama
-            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // Multi-gambar galeri
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'is_active' => 'boolean',
+            'umkm_product_ids' => 'nullable|array',
+            'umkm_product_ids.*' => 'integer|exists:umkm_products,id',
         ]);
 
         $validated['type'] = $request->input('type', 'destination');
         $validated['is_active'] = $request->has('is_active') ? $request->boolean('is_active') : true;
 
-        // Simpan banner utama jika ada
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('destinations', 'public');
             $validated['image_url'] = Storage::url($path);
@@ -49,7 +50,10 @@ class DestinationController extends Controller
 
         $destination = Destination::create($validated);
 
-        // Simpan multi-gambar galeri jika diunggah
+        if ($request->has('umkm_product_ids')) {
+            $destination->umkmProducts()->sync($request->input('umkm_product_ids'));
+        }
+
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $file) {
                 $imgPath = $file->store('destinations/gallery', 'public');
@@ -61,14 +65,14 @@ class DestinationController extends Controller
         }
 
         return response()->json([
-            'message' => 'Destinasi atau paket berhasil ditambahkan',
-            'data' => $destination->load('images')
+            'message' => 'Destinasi atau paket bundling berhasil ditambahkan',
+            'data' => $destination->load(['images', 'umkmProducts.images']) // PERBAIKAN DI SINI
         ], 201);
     }
 
     public function show(Destination $destination)
     {
-        return response()->json($destination->load('images'));
+        return response()->json($destination->load(['images', 'umkmProducts.images'])); // PERBAIKAN DI SINI
     }
 
     public function update(Request $request, Destination $destination)
@@ -79,18 +83,24 @@ class DestinationController extends Controller
             'description' => 'nullable|string',
             'location' => 'sometimes|required|string|max:255',
             'ticket_price' => 'sometimes|required|integer|min:0',
-            'umkm_revenue_share' => 'nullable|numeric|min:0',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'existing_image_ids' => 'nullable|array', 
             'existing_image_ids.*' => 'integer|exists:destination_images,id',
             'image_orders' => 'nullable|array', 
-            'image_orders.*' => 'integer|exists:destination_images,id', // Hanya terima angka (ID database)
+            'image_orders.*' => 'integer|exists:destination_images,id',
             'is_active' => 'boolean',
+            'umkm_product_ids' => 'nullable|array',
+            'umkm_product_ids.*' => 'integer|exists:umkm_products,id',
         ]);
 
         $destination->update($validated);
 
-        // 1. HAPUS FOTO LAMA YANG DIBUANG OLEH USER
+        if ($request->has('umkm_product_ids')) {
+            $destination->umkmProducts()->sync($request->input('umkm_product_ids'));
+        } else {
+            $destination->umkmProducts()->detach();
+        }
+
         $keptImageIds = $request->input('existing_image_ids', []);
         $imagesToDelete = $destination->images()->whereNotIn('id', $keptImageIds)->get();
         foreach ($imagesToDelete as $img) {
@@ -100,7 +110,6 @@ class DestinationController extends Controller
             $img->delete();
         }
 
-        // 2. UPDATE URUTAN (sort_order) UNTUK FOTO LAMA
         if ($request->has('image_orders')) {
             foreach ($request->input('image_orders') as $index => $imageId) {
                 DestinationImage::where('id', $imageId)
@@ -109,7 +118,6 @@ class DestinationController extends Controller
             }
         }
 
-        // 3. TAMBAH GALERI FOTO BARU
         if ($request->hasFile('images')) {
             $existingCount = $destination->images()->count();
             foreach ($request->file('images') as $index => $file) {
@@ -122,7 +130,6 @@ class DestinationController extends Controller
             }
         }
 
-        // 4. OTOMATIS JADIKAN FOTO PERTAMA SEBAGAI BANNER UTAMA
         $firstImage = $destination->images()->orderBy('sort_order')->orderBy('id')->first();
         if ($firstImage) {
             $destination->update(['image_url' => $firstImage->image_url]);
@@ -131,10 +138,13 @@ class DestinationController extends Controller
         }
 
         return response()->json([
-            'message' => 'Data dan galeri berhasil diperbarui',
-            'data' => $destination->load(['images' => function($q) {
-                $q->orderBy('sort_order')->orderBy('id');
-            }])
+            'message' => 'Data dan paket bundling berhasil diperbarui',
+            'data' => $destination->load([
+                'images' => function($q) {
+                    $q->orderBy('sort_order')->orderBy('id');
+                }, 
+                'umkmProducts.images' // PERBAIKAN DI SINI
+            ])
         ]);
     }
     
@@ -144,7 +154,6 @@ class DestinationController extends Controller
             Storage::disk('public')->delete(str_replace('/storage/', '', $destination->image_url));
         }
         
-        // Hapus file fisik galeri
         foreach($destination->images as $img) {
             Storage::disk('public')->delete(str_replace('/storage/', '', $img->image_url));
         }

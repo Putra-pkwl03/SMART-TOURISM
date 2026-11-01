@@ -13,7 +13,10 @@ import {
     LogOut,
     ShieldCheck,
     X,
-    QrCode as ScanIcon
+    QrCode as ScanIcon,
+    Package,
+    ShoppingBag,
+    DollarSign
 } from 'lucide-react';
 import { apiClient } from '@/app/lib/axios';
 import LogoutModal from './LogoutModal';
@@ -30,10 +33,20 @@ export default function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
     const [loadingLogout, setLoadingLogout] = useState(false);
     const [userRole, setUserRole] = useState<string>('admin');
 
-    // Mendapatkan role user yang sedang login saat komponen dimuat
+    // Mendapatkan role user yang sedang login (Sinkron dengan Cookie & LocalStorage)
     useEffect(() => {
-        const storedRole = localStorage.getItem('user_role') || 'admin';
-        setUserRole(storedRole);
+        const getCookie = (name: string) => {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop()?.split(';').shift();
+            return null;
+        };
+
+        const roleFromCookie = getCookie('user_role');
+        const roleFromStorage = localStorage.getItem('user_role');
+        
+        const activeRole = roleFromCookie || roleFromStorage || 'admin';
+        setUserRole(activeRole);
     }, []);
 
     const executeLogout = async () => {
@@ -62,16 +75,36 @@ export default function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
         { name: 'Pengaturan', href: '/dashboard/admin/settings', icon: Settings },
     ];
 
-    // Daftar Menu untuk Petugas Lapangan / Loket (Ticketing Officer) - Ditambahkan Dashboard Loket di awal
+    // Daftar Menu untuk Petugas Lapangan / Loket (Ticketing Officer)
     const officerMenuItems = [
         { name: 'Dashboard Loket', href: '/dashboard/loket', icon: LayoutDashboard },
         { name: 'Validasi E-Ticket', href: '/dashboard/officer/scan', icon: ScanIcon },
         { name: 'Monitoring EWS & Cuaca', href: '/dashboard/officer/ews', icon: Activity },
     ];
 
-    // Pengecekan disesuaikan dengan nilai dari database: 'ticketing_officer'
+    // Daftar Menu untuk Mitra / Pengurus UMKM (UMKM Sedyo Maju)
+    const umkmMenuItems = [
+        { name: 'Dashboard UMKM', href: '/dashboard/umkm', icon: LayoutDashboard },
+        { name: 'Kelola Produk & Stok', href: '/dashboard/umkm/products', icon: Package },
+        { name: 'Penjualan & Hampers', href: '/dashboard/umkm/sales', icon: ShoppingBag },
+        { name: 'Laporan Bagi Hasil (EOM)', href: '/dashboard/umkm/reports', icon: DollarSign },
+    ];
+
+    // Pengecekan role aktif
     const isOfficer = userRole === 'ticketing_officer';
-    const menuItems = isOfficer ? officerMenuItems : adminMenuItems;
+    const isUmkm = userRole === 'umkm_mitra';
+
+    // Penentuan menu yang akan dirender berdasarkan role
+    let menuItems = adminMenuItems;
+    let roleLabel = 'Admin / Pokdarwis';
+
+    if (isOfficer) {
+        menuItems = officerMenuItems;
+        roleLabel = 'Ticketing Officer';
+    } else if (isUmkm) {
+        menuItems = umkmMenuItems;
+        roleLabel = 'Mitra UMKM Sedyo Maju';
+    }
 
     return (
         <>
@@ -108,7 +141,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
                     <div className="px-4 py-6 overflow-y-auto max-h-[calc(100vh-140px)]">
                         <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
                             <ShieldCheck className="w-4 h-4 text-blue-400" />
-                            <span>Role: {isOfficer ? 'Ticketing Officer' : 'Admin / Pokdarwis'}</span>
+                            <span>Role: {roleLabel}</span>
                         </p>
                         <nav className="space-y-2">
                             {menuItems.map((item, index) => {
@@ -140,7 +173,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
                     <button
                         type="button"
                         onClick={() => setShowLogoutModal(true)}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition border border-red-500/20"
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition border border-red-500/20 cursor-pointer"
                     >
                         <LogOut className="w-5 h-5 flex-shrink-0" />
                         <span className="text-left leading-snug">Keluar</span>

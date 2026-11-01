@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { MapPin, Loader2, Images as ImageIcon, ShieldCheck, Ticket } from 'lucide-react';
+import { MapPin, Loader2, Images as ImageIcon, ShieldCheck, Ticket, Boxes } from 'lucide-react';
 import { apiClient } from '@/app/lib/axios';
 import { toast } from 'sonner';
 
@@ -21,7 +21,6 @@ function DestinationDetailContent() {
     const [destination, setDestination] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     
-    // Ambil parameter dari URL jika ada, jika tidak gunakan default
     const [ticketCount, setTicketCount] = useState<number>(
         Number(searchParams.get('visitors')) || 1
     );
@@ -37,10 +36,8 @@ function DestinationDetailContent() {
         if (visitorsParam) setTicketCount(Number(visitorsParam));
     }, [searchParams]);
 
-    // State untuk galeri foto interaktif
     const [activeImageIndex, setActiveImageIndex] = useState(0);
 
-    // Modal States
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
     const [createdTicketData, setCreatedTicketData] = useState<any>(null);
@@ -137,28 +134,62 @@ function DestinationDetailContent() {
     }
 
     const getFullImageUrl = (url?: string) => {
-        if (!url) return '/destinasi-jurug-gedhe.jpg';
-        if (url.startsWith('http')) return url;
+        if (!url) return '';
+        if (url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://')) {
+            return url;
+        }
         const cleanPath = url.startsWith('/') ? url : `/${url}`;
-        return `${BACKEND_URL}${cleanPath}`;
+        const finalPath = cleanPath.startsWith('/storage') ? cleanPath : `/storage/${url.replace(/^\/+/, '')}`;
+        return `${BACKEND_URL}${finalPath}`;
     };
 
-    const allGalleryImages: string[] = [];
+    const getProductImageUrl = (prod: any) => {
+        if (!prod) return '';
+        if (prod.images && Array.isArray(prod.images) && prod.images.length > 0) {
+            const primaryImg = prod.images.find((img: any) => img.is_primary) || prod.images[0];
+            const rawPath = primaryImg.image_url || primaryImg.image_path || '';
+            if (rawPath) return getFullImageUrl(rawPath);
+        }
+        const rawPath = prod.image_url || prod.image_path || prod.image || '';
+        return getFullImageUrl(rawPath);
+    };
+
+    // Gabungkan Foto Destinasi & Foto Produk UMKM ke dalam 1 Array Slides Universal (Tanpa Harga)
+    const slides: { type: 'destination' | 'umkm'; url: string; title: string }[] = [];
+    
     if (destination.image_url) {
-        allGalleryImages.push(getFullImageUrl(destination.image_url));
+        slides.push({ type: 'destination', url: getFullImageUrl(destination.image_url), title: destination.name });
     }
     if (destination.images && Array.isArray(destination.images)) {
         destination.images.forEach((img: any) => {
             const formattedUrl = getFullImageUrl(img.image_url);
-            if (!allGalleryImages.includes(formattedUrl)) {
-                allGalleryImages.push(formattedUrl);
+            if (formattedUrl && !slides.some(s => s.url === formattedUrl)) {
+                slides.push({ type: 'destination', url: formattedUrl, title: destination.name });
             }
         });
     }
-    if (allGalleryImages.length === 0) {
-        allGalleryImages.push('/destinasi-jurug-gedhe.jpg');
+    if (slides.length === 0) {
+        slides.push({ type: 'destination', url: '/destinasi-jurug-gedhe.jpg', title: destination.name });
     }
 
+    const umkmProductsList = destination.umkm_products || destination.umkmProducts || [];
+    const totalUmkmProducts = umkmProductsList.length;
+    const isBundling = totalUmkmProducts > 0;
+
+    if (totalUmkmProducts > 0) {
+        umkmProductsList.forEach((prod: any) => {
+            const prodImg = getProductImageUrl(prod);
+            if (prodImg) {
+                slides.push({ 
+                    type: 'umkm', 
+                    url: prodImg, 
+                    title: prod.name 
+                });
+            }
+        });
+    }
+
+    const currentSlide = slides[activeImageIndex] || slides[0];
     const totalPrice = destination.ticket_price * ticketCount;
 
     return (
@@ -169,44 +200,69 @@ function DestinationDetailContent() {
                     <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden p-6 sm:p-8 space-y-6">
                         
                         <div className="space-y-4">
+                            {/* Gambar Utama */}
                             <div className="h-72 sm:h-96 rounded-2xl bg-slate-900 relative overflow-hidden shadow-inner group">
                                 <div 
                                     className="absolute inset-0 bg-cover bg-center transition-all duration-500"
-                                    style={{ backgroundImage: `url('${allGalleryImages[activeImageIndex]}')` }}
+                                    style={{ backgroundImage: `url('${currentSlide.url}')` }}
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent opacity-80" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent opacity-80 pointer-events-none" />
                                 
-                                <div className="absolute top-4 left-4">
-                                    <span className={`px-3 py-1.5 rounded-full backdrop-blur-md text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 ${
-                                        destination.is_active ? 'bg-emerald-600/80' : 'bg-red-600/80'
+                                <div className="absolute top-4 left-4 flex flex-col gap-1 z-10">
+                                    <span className={`px-3 py-1.5 rounded-full backdrop-blur-md text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md ${
+                                        destination.is_active ? 'bg-emerald-600/90' : 'bg-red-600/90'
                                     }`}>
                                         <ShieldCheck className="w-4 h-4" />
                                         {destination.is_active ? 'Aktif (Normal)' : 'Darurat Ditutup'}
                                     </span>
+                                    {isBundling && (
+                                        <span className="px-3 py-1 rounded-full bg-emerald-950/80 backdrop-blur-md text-emerald-300 font-bold text-[10px] uppercase tracking-wider shadow-md border border-emerald-500/30">
+                                            📦 BUNDLING UMKM ({totalUmkmProducts})
+                                        </span>
+                                    )}
                                 </div>
 
-                                <div className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/70 backdrop-blur-md text-white text-xs font-medium">
-                                    <ImageIcon className="w-4 h-4 text-emerald-400" />
-                                    <span>Foto {activeImageIndex + 1} dari {allGalleryImages.length}</span>
+                                <div className="absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between text-white">
+                                    <div>
+                                        {currentSlide.type === 'umkm' ? (
+                                            <div className="flex items-center gap-2 bg-emerald-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-emerald-500/30 w-fit">
+                                                <Boxes className="w-3.5 h-3.5 text-emerald-400" />
+                                                <span className="text-xs font-bold text-white">Suvenir Bundling: {currentSlide.title}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs font-semibold drop-shadow-md">{currentSlide.title}</span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/70 backdrop-blur-md text-xs font-medium">
+                                        <ImageIcon className="w-4 h-4 text-emerald-400" />
+                                        <span>Item {activeImageIndex + 1} dari {slides.length}</span>
+                                    </div>
                                 </div>
                             </div>
 
-                            {allGalleryImages.length > 1 && (
+                            {/* Thumbnail Foto Di Bawah (Mencakup Foto Destinasi & Produk UMKM) */}
+                            {slides.length > 1 && (
                                 <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-thin">
-                                    {allGalleryImages.map((img, idx) => (
+                                    {slides.map((s, idx) => (
                                         <button
                                             key={idx}
                                             onClick={() => setActiveImageIndex(idx)}
                                             className={`relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 transition-all duration-300 border-2 ${
                                                 activeImageIndex === idx 
-                                                    ? 'border-emerald-600 shadow-md scale-105' 
+                                                    ? 'border-emerald-600 shadow-md scale-105 ring-2 ring-emerald-500/20' 
                                                     : 'border-transparent opacity-60 hover:opacity-100'
                                             }`}
+                                            title={s.title}
                                         >
                                             <div 
                                                 className="absolute inset-0 bg-cover bg-center"
-                                                style={{ backgroundImage: `url('${img}')` }}
+                                                style={{ backgroundImage: `url('${s.url}')` }}
                                             />
+                                            {s.type === 'umkm' && (
+                                                <div className="absolute bottom-0 inset-x-0 bg-emerald-900/80 text-[9px] text-white text-center font-bold py-0.5 truncate px-1">
+                                                    UMKM
+                                                </div>
+                                            )}
                                         </button>
                                     ))}
                                 </div>
