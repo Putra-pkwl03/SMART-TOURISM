@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, ShieldCheck, X } from 'lucide-react';
+import { Plus, ShieldCheck, X, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/app/lib/axios';
+import { getBackendUrl } from '@/app/lib/backend-url';
 import DestinationModal from '../../../components/dashboard/admin/destinations/DestinationModal';
 import DestinationTable from '../../../components/dashboard/admin/destinations/DestinationTable';
 import DeleteConfirmModal from '../../../components/dashboard/admin/destinations/DeleteConfirmModal';
@@ -42,7 +43,7 @@ export default function DestinationsPage() {
             setLoading(true);
             const response = await apiClient.get('/destinations');
             
-            const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+            const BACKEND_URL = getBackendUrl();
 
             const resolveUrl = (pathOrUrl?: string) => {
                 if (!pathOrUrl) return '';
@@ -210,21 +211,37 @@ export default function DestinationsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-lg font-reguler text-slate-900">Kelola Destinasi dan Paket Wisata</h1>
-                    <p className="text-xs text-gray-500">
-                        Kelola destinasi wisata, paket bundling, dan integrasi produk UMKM di dalamnya.
-                    </p>
-                </div>
-                <button
-                    onClick={handleOpenAddModal}
-                    className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-xl text-xs font-medium flex items-center justify-center gap-2 shadow-lg shadow-emerald-700/20 transition"
-                >
-                    <Plus className="w-4 h-4" />
-                    <span>Tambah Destinasi / Paket</span>
-                </button>
-            </div>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2">
+    {/* Sisi Kiri: Ikon Melengkung & Teks Judul */}
+    <div className="flex items-center gap-5">
+        {/* Kotak Ikon Hijau Muda Melengkung */}
+        <div className="w-16 h-16 bg-emerald-100/70 backdrop-blur-md rounded-3xl flex items-center justify-center text-emerald-700 shadow-sm flex-shrink-0 border border-emerald-200/50">
+            <MapPin className="w-8 h-8" />
+        </div>
+
+        {/* Teks Judul & Deskripsi */}
+        <div>
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                Destinasi Dan Paket Wisata
+            </h1>
+            <p className="text-xs text-slate-600 mt-1 leading-relaxed font-medium max-w-2xl">
+                Kelola destinasi wisata, paket bundling, <br className="hidden sm:inline" />
+                dan integrasi produk UMKM di dalamnya.
+            </p>
+        </div>
+    </div>
+
+    {/* Sisi Kanan: Tombol Aksi Tambah */}
+    <div className="flex items-center justify-end">
+        <button
+            onClick={handleOpenAddModal}
+            className="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm shadow-emerald-700/20 transition cursor-pointer"
+        >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Destinasi / Paket</span>
+        </button>
+    </div>
+</div>
 
             {showEwsAlert && (
                 <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start justify-between gap-3">

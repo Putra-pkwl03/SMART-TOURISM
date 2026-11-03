@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { Calendar, Users, Download, Clock, CheckCircle2, MapPin, ShieldCheck, Sparkles, QrCode, X } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { toast } from 'sonner';
+import { getBackendUrl } from '@/app/lib/backend-url';
 
 interface TicketItem {
     id: number;
@@ -35,7 +36,7 @@ export default function TicketCard({ ticket }: TicketCardProps) {
     const isUsed = ticket.ticket_status === 'used';
 
     const rawImageUrl = ticket.destination?.image_url;
-    const backendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+    const backendBaseUrl = getBackendUrl();
     
     const bgImageUrl = rawImageUrl 
         ? (rawImageUrl.startsWith('http') ? rawImageUrl : `${backendBaseUrl}${rawImageUrl.startsWith('/') ? '' : '/'}${rawImageUrl}`)
@@ -59,7 +60,7 @@ export default function TicketCard({ ticket }: TicketCardProps) {
                 <div 
                     ref={ticketRef} 
                     id="ticket-printable-card"
-                    className="w-full max-w-7xl bg-slate-900 rounded-3xl print:rounded-none border border-slate-200 shadow-xl overflow-hidden flex flex-row relative group transition hover:shadow-2xl print:shadow-none print:border-0 print:m-0 print:max-w-xl print:flex-col print:items-center print:text-center print:bg-slate-900"
+                    className="w-full max-w-7xl bg-slate-900 rounded-3xl print:rounded-none border border-slate-200 shadow-xl overflow-hidden flex flex-col md:flex-row relative group transition hover:shadow-2xl print:shadow-none print:border-0 print:m-0 print:max-w-xl print:flex-col print:items-center print:text-center print:bg-slate-900"
                 >
                     {/* Latar Belakang Gambar Asli */}
                     {bgImageUrl && (
@@ -74,42 +75,42 @@ export default function TicketCard({ ticket }: TicketCardProps) {
                     )}
 
                     {/* Aksen Hiasan Kiri (Sembunyi saat print) */}
-                    <div className={`w-3.5 z-10 flex-shrink-0 print:hidden ${
+                    <div className={`h-3.5 w-full md:h-auto md:w-3.5 z-10 flex-shrink-0 print:hidden ${
                         isPending ? 'bg-amber-500' : isUsed ? 'bg-slate-400' : 'bg-emerald-600'
                     }`} />
 
                     {/* Bagian Utama Tiket (Kiri pada Web, Berubah saat Print) */}
-                    <div className="p-6 sm:p-8 flex-1 space-y-6 relative z-10 print:w-full print:space-y-4">
-                        <div className="flex flex-wrap items-center justify-between gap-3 print:justify-center">
+                    <div className="p-4 sm:p-8 flex-1 space-y-4 sm:space-y-6 relative z-10 print:w-full print:space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 print:justify-center">
                             <div className="flex items-center gap-2 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-slate-200 shadow-sm print:bg-slate-800 print:border-slate-700">
                                 <Sparkles className="w-3.5 h-3.5 text-emerald-700 print:text-emerald-400" />
-                                <span className="text-xs font-mono font-extrabold text-slate-900 tracking-wider print:text-white">
+                                <span className="break-all text-xs font-mono font-extrabold text-slate-900 tracking-wider sm:break-normal print:text-white">
                                     {ticket.ticket_code}
                                 </span>
                             </div>
 
                             {isPending ? (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50/90 backdrop-blur-md text-amber-700 border border-amber-200 text-xs font-bold shadow-sm">
+                                <span className="ml-auto inline-flex max-w-full items-center justify-end gap-1.5 px-3 py-1 rounded-full bg-amber-50/90 backdrop-blur-md text-amber-700 border border-amber-200 text-right text-xs font-bold leading-tight shadow-sm sm:ml-0 sm:justify-start sm:text-left">
                                     <Clock className="w-3.5 h-3.5" /> Menunggu Validasi Admin
                                 </span>
                             ) : isUsed ? (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/90 backdrop-blur-md text-slate-600 border border-slate-300 text-xs font-bold shadow-sm">
+                                <span className="ml-auto inline-flex max-w-full items-center justify-end gap-1.5 px-3 py-1 rounded-full bg-slate-100/90 backdrop-blur-md text-slate-600 border border-slate-300 text-right text-xs font-bold leading-tight shadow-sm sm:ml-0 sm:justify-start sm:text-left">
                                     <CheckCircle2 className="w-3.5 h-3.5" /> Telah Digunakan
                                 </span>
                             ) : (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50/90 backdrop-blur-md text-emerald-700 border border-emerald-200 text-xs font-bold shadow-sm">
-                                    <ShieldCheck className="w-3.5 h-3.5" /> Disetujui / Siap Digunakan
+                                <span className="ml-auto inline-flex max-w-full items-center justify-end gap-1.5 px-3 py-1 rounded-full bg-emerald-50/90 backdrop-blur-md text-emerald-700 border border-emerald-200 text-right text-xs font-bold leading-tight shadow-sm sm:ml-0 sm:justify-start sm:text-left">
+                                    <ShieldCheck className="w-3.5 h-3.5" /> Disetujui
                                 </span>
                             )}
                         </div>
 
-                        <div>
-                            <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight drop-shadow-md print:text-white">
+                        <div className="min-w-0">
+                            <h3 className="wrap-break-word text-xl sm:text-2xl font-black text-slate-900 tracking-tight drop-shadow-md print:text-white">
                                 {ticket.destination?.name || 'Destinasi Wisata'}
                             </h3>
-                            <p className="text-xs text-slate-800 flex items-center gap-1 mt-1 font-bold drop-shadow-sm print:text-slate-300 print:justify-center">
+                            <p className="wrap-break-word min-w-0 text-xs text-slate-800 flex items-start sm:items-center gap-1 mt-1 font-bold drop-shadow-sm print:text-slate-300 print:justify-center">
                                 <MapPin className="w-3.5 h-3.5 text-emerald-600 print:text-emerald-400 flex-shrink-0" />
-                                <span>{ticket.destination?.location || 'Ngoro-Oro, Patuk, Gunungkidul'}</span>
+                                <span className="min-w-0">{ticket.destination?.location || 'Ngoro-Oro, Patuk, Gunungkidul'}</span>
                             </p>
                         </div>
 
@@ -126,7 +127,7 @@ export default function TicketCard({ ticket }: TicketCardProps) {
                             </span>
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-4 border-t border-dashed border-slate-400 text-xs print:grid-cols-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 pt-4 border-t border-dashed border-slate-400 text-xs print:grid-cols-2">
                             <div className="bg-white/90 backdrop-blur-md p-3 rounded-2xl border border-slate-200 shadow-sm print:bg-slate-800/80 print:border-slate-700 print:text-left">
                                 <span className="text-slate-600 print:text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Tanggal Kunjungan</span>
                                 <span className="font-extrabold text-slate-900 print:text-white flex items-center gap-1.5 mt-1">
@@ -148,11 +149,15 @@ export default function TicketCard({ ticket }: TicketCardProps) {
                         </div>
                     </div>
 
+                    <div aria-hidden="true" className="relative z-20 h-0 w-full shrink-0 border-t border-dashed border-slate-400/70 md:h-auto md:w-0 md:self-stretch md:border-t-0 md:border-l print:hidden">
+                        <span className="absolute left-0 top-0 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-50 md:hidden" />
+                        <span className="absolute right-0 top-0 h-6 w-6 translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-50 md:hidden" />
+                        <span className="absolute left-0 top-1/2 hidden h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-50 md:block" />
+                    </div>
+
                     {/* Bagian QR Code Sisi Kanan (Tampil di Web, Disembunyikan saat Print) */}
-                    <div className="bg-slate-900/95 backdrop-blur-md p-6 md:p-8 flex flex-col items-center justify-center text-center text-white relative w-72 z-10 print:hidden flex-shrink-0">
-                        <div className="hidden md:block absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-50 rounded-full border-r border-slate-200" />
-                        
-                        <div className="flex flex-col items-center justify-center space-y-3 my-auto w-full">
+                    <div className="bg-slate-900/95 backdrop-blur-md p-4 md:p-8 grid grid-cols-[7rem_minmax(0,1fr)] items-center gap-x-4 gap-y-3 text-white relative w-full md:w-72 md:flex md:flex-col md:justify-center md:text-center z-10 print:hidden flex-shrink-0">
+                        <div className="col-span-2 grid grid-cols-[7rem_minmax(0,1fr)] items-center gap-4 w-full md:flex md:flex-col md:space-y-3 md:my-auto">
                             <div className="w-28 h-28 bg-white p-2.5 rounded-2xl shadow-lg flex items-center justify-center mx-auto">
                                 <QRCodeCanvas 
                                     value={ticket.ticket_code} 
@@ -162,14 +167,14 @@ export default function TicketCard({ ticket }: TicketCardProps) {
                                 />
                             </div>
 
-                            <div className="space-y-0.5">
+                            <div className="space-y-0.5 text-left md:text-center">
                                 <span className="text-[11px] font-bold tracking-widest uppercase text-emerald-300 block">E-Pass Resmi</span>
                                 <span className="text-[10px] text-slate-300 font-medium block">Tunjukkan ke petugas gerbang</span>
                             </div>
                         </div>
 
                         {/* Tombol Aksi di Web */}
-                        <div className="w-full mt-6 space-y-2">
+                        <div className="col-span-2 w-full space-y-2 md:mt-6">
                             {/* Tombol Lihat Barcode Full untuk Scan */}
                             <button
                                 type="button"

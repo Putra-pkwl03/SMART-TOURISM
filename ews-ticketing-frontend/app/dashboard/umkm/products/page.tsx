@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Package } from 'lucide-react';
 import { apiClient } from '@/app/lib/axios';
 import { toast } from 'sonner';
 import ProductModal from '@/app/components/dashboard/umkm/ProductModal';
@@ -81,19 +81,37 @@ export default function UmkmProductsPage() {
     return (
         <div className="space-y-6 text-gray-900">
             {/* Header Section */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-lg font-reguler text-gray-900 tracking-tight">Kelola Produk dan Stok UMKM</h1>
-                    <p className="text-xs text-gray-500">Tambah, ubah harga, dan pantau ketersediaan produk kerajinan Anda secara real-time.</p>
-                </div>
-                <button 
-                    onClick={handleOpenAdd}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-reguler rounded-xl transition shadow-lg shadow-blue-600/20 cursor-pointer"
-                >
-                    <Plus className="w-4 h-4" />
-                    <span>Tambah Produk</span>
-                </button>
-            </div>
+<div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2">
+    {/* Sisi Kiri: Ikon Melengkung & Teks Judul */}
+    <div className="flex items-center gap-5">
+        {/* Kotak Ikon Hijau Muda Melengkung */}
+        <div className="w-16 h-16 bg-emerald-100/70 backdrop-blur-md rounded-3xl flex items-center justify-center text-emerald-700 shadow-sm flex-shrink-0 border border-emerald-200/50">
+            <Package className="w-8 h-8" />
+        </div>
+
+        {/* Teks Judul & Deskripsi */}
+        <div>
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                Produk Dan Stok UMKM
+            </h1>
+            <p className="text-xs text-slate-600 mt-1 leading-relaxed font-medium max-w-2xl">
+                Tambah, ubah harga, dan pantau ketersediaan produk kerajinan Anda <br className="hidden sm:inline" />
+                secara real-time.
+            </p>
+        </div>
+    </div>
+
+    {/* Sisi Kanan: Tombol Aksi Tambah */}
+    <div className="flex items-center justify-end">
+        <button 
+            onClick={handleOpenAdd}
+            className="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm shadow-emerald-700/20 transition cursor-pointer"
+        >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Produk</span>
+        </button>
+    </div>
+</div>
 
             {/* Komponen Statistik */}
             <ProductStats 

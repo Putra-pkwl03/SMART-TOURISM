@@ -1,4 +1,5 @@
 import { Package } from 'lucide-react';
+import { getBackendUrl } from '@/app/lib/backend-url';
 
 interface UmkmBundlingSelectorProps {
     availableProducts: any[];
@@ -31,7 +32,7 @@ export default function UmkmBundlingSelector({
             return rawPath;
         }
 
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+        const backendUrl = getBackendUrl();
         
         // Karena di controller Laravel `store` menggunakan ->store('products', 'public') 
         // yang menghasilkan path 'products/namafile.jpg', biasanya diakses via '/storage/products/...' 

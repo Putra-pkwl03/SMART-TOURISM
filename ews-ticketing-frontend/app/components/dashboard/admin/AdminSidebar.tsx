@@ -44,7 +44,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
 
         const roleFromCookie = getCookie('user_role');
         const roleFromStorage = localStorage.getItem('user_role');
-        
+         
         const activeRole = roleFromCookie || roleFromStorage || 'admin';
         setUserRole(activeRole);
     }, []);
@@ -116,68 +116,81 @@ export default function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
             )}
 
             <aside className={`
-                fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 flex flex-col justify-between border-r border-slate-800 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0
+                fixed inset-y-0 left-0 z-50 w-64 text-slate-200 flex flex-col justify-between border-r border-emerald-950 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 bg-no-repeat relative overflow-hidden
                 ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-            `}>
-                <div>
-                    <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-                        <div>
-                            <div className="flex items-center gap-2.5 mb-1">
-                                <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-md">
-                                    ST
+            `}
+            style={{ 
+                backgroundImage: `url('/images/bgsedebar.png')`,
+                backgroundSize: '160% auto', // Memperkecil gambar (zoom out) agar area lanskapnya pas
+                backgroundPosition: '50% bottom' // Memposisikan gambar agar berada di tengah secara horizontal dan menempel di bawah
+            }}
+            >
+                {/* Overlay gradasi: Bagian atas dibuat hijau pekat lebih panjang/tebal, dan hanya transparan di bagian paling bawah */}
+                <div className="absolute inset-0 bg-gradient-to-b from-emerald-950 via-emerald-950/95 to-emerald-950/50 pointer-events-none -z-0" />
+
+                {/* Konten Utama Sidebar (Berada di atas overlay) */}
+                <div className="relative z-10 flex flex-col h-full justify-between">
+                    <div>
+                        {/* Bagian Header / Logo Asli (Tidak Diubah) */}
+                        <div className="p-6 border-b border-emerald-900/60 flex items-center justify-between">
+                            <div>
+                                <div className="flex items-center gap-2.5 mb-1">
+                                    <div className="w-7 h-7 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-md">
+                                        ST
+                                    </div>
+                                    <h1 className="text-white font-bold text-sm tracking-wider">SMART TOURISM</h1>
                                 </div>
-                                <h1 className="text-white font-bold text-sm tracking-wider">SMART TOURISM</h1>
+                                <p className="text-[11px] text-emerald-200/80">Jurug Gedhe & EWS Terpadu</p>
                             </div>
-                            <p className="text-[11px] text-slate-400">Jurug Gedhe & EWS Terpadu</p>
+                            <button 
+                                onClick={() => setIsOpen(false)}
+                                className="lg:hidden p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-emerald-900/50 transition"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
                         </div>
-                        <button 
-                            onClick={() => setIsOpen(false)}
-                            className="lg:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+
+                        <div className="px-4 py-6 overflow-y-auto max-h-[calc(100vh-140px)]">
+                            <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-emerald-300/80 mb-3 flex items-center gap-1.5">
+                                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                                <span>Role: {roleLabel}</span>
+                            </p>
+                            <nav className="space-y-2">
+                                {menuItems.map((item, index) => {
+                                    const Icon = item.icon;
+                                    const isActive = pathname === item.href;
+                                    return (
+                                        <button
+                                            key={index}
+                                            onClick={() => {
+                                                router.push(item.href);
+                                                setIsOpen(false);
+                                            }}
+                                            className={`w-full cursor-pointer flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition ${
+                                                isActive 
+                                                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-950 font-semibold' 
+                                                    : 'hover:bg-emerald-900/60 hover:text-white text-slate-200'
+                                            }`}
+                                        >
+                                            <Icon className="w-5 h-5 flex-shrink-0" />
+                                            <span className="text-left leading-snug">{item.name}</span>
+                                        </button>
+                                    );
+                                })}
+                            </nav>
+                        </div>
+                    </div>
+
+                    <div className="p-4 border-t border-emerald-900/60 bg-emerald-950/9oomla">
+                        <button
+                            type="button"
+                            onClick={() => setShowLogoutModal(true)}
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-300 hover:bg-red-500/20 hover:text-red-200 transition border border-red-500/30 cursor-pointer"
                         >
-                            <X className="w-5 h-5" />
+                            <LogOut className="w-5 h-5 flex-shrink-0" />
+                            <span className="text-left leading-snug">Keluar</span>
                         </button>
                     </div>
-
-                    <div className="px-4 py-6 overflow-y-auto max-h-[calc(100vh-140px)]">
-                        <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-                            <ShieldCheck className="w-4 h-4 text-blue-400" />
-                            <span>Role: {roleLabel}</span>
-                        </p>
-                        <nav className="space-y-2">
-                            {menuItems.map((item, index) => {
-                                const Icon = item.icon;
-                                const isActive = pathname === item.href;
-                                return (
-                                    <button
-                                        key={index}
-                                        onClick={() => {
-                                            router.push(item.href);
-                                            setIsOpen(false);
-                                        }}
-                                        className={`w-full cursor-pointer flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition ${
-                                            isActive 
-                                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
-                                                : 'hover:bg-slate-800 hover:text-white text-slate-300'
-                                        }`}
-                                    >
-                                        <Icon className="w-5 h-5 flex-shrink-0" />
-                                        <span className="text-left leading-snug">{item.name}</span>
-                                    </button>
-                                );
-                            })}
-                        </nav>
-                    </div>
-                </div>
-
-                <div className="p-4 border-t border-slate-800 bg-slate-950/40">
-                    <button
-                        type="button"
-                        onClick={() => setShowLogoutModal(true)}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition border border-red-500/20 cursor-pointer"
-                    >
-                        <LogOut className="w-5 h-5 flex-shrink-0" />
-                        <span className="text-left leading-snug">Keluar</span>
-                    </button>
                 </div>
             </aside>
 

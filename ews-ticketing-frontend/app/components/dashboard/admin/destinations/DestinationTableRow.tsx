@@ -14,6 +14,7 @@ import {
     Boxes,
     Info
 } from 'lucide-react';
+import { getBackendUrl } from '@/app/lib/backend-url';
 
 export interface UmkmProduct {
     id: number;
@@ -73,7 +74,7 @@ export default function DestinationTableRow({
         if (url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://')) {
             return url;
         }
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+        const backendUrl = getBackendUrl();
         const cleanPath = url.startsWith('/') ? url : `/${url}`;
         const finalPath = cleanPath.startsWith('/storage') ? cleanPath : `/storage/${url.replace(/^\/+/, '')}`;
         return `${backendUrl}${finalPath}`;

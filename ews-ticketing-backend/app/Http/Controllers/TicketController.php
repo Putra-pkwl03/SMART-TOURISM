@@ -12,10 +12,10 @@ use Illuminate\Support\Facades\DB;
 
 class TicketController extends Controller
 {
-    // 1. Rekapitulasi Tiket untuk Dashboard Admin (/dashboard/admin/tickets)
     public function index()
     {
-        $tickets = Ticket::with(['destination', 'user', 'ticketItems.umkmProduct'])->latest()->get();
+        // PERBAIKAN: Sertakan 'destination.images' agar foto destinasi ikut terkirim
+        $tickets = Ticket::with(['destination.images', 'user', 'ticketItems.umkmProduct'])->latest()->get();
         return response()->json($tickets);
     }
 
@@ -26,8 +26,8 @@ class TicketController extends Controller
             'destination_id' => 'required|exists:destinations,id',
             'visitor_count' => 'required|integer|min:1',
             'visit_date' => 'required|date',
-            'payment_method' => 'required|string', // Pastikan metode pembayaran dikirim
-            'payment_proof' => 'required|image|max:2048', // Wajib unggah bukti bayar
+            'payment_method' => 'required|string', 
+            'payment_proof' => 'required|image|max:2048', 
             'items' => 'nullable|array', 
             'items.*.umkm_product_id' => 'required_with:items|exists:umkm_products,id',
             'items.*.quantity' => 'required_with:items|integer|min:1',
@@ -52,29 +52,30 @@ class TicketController extends Controller
                 $proofPath = $request->file('payment_proof')->store('payment-proofs', 'public');
             }
 
-            // Generate Kode Unik Tiket (Contoh: JT-261028-A1B2)
+            // Generate Kode Unik Tiket
             $ticketCode = 'JT-' . date('ymd') . '-' . strtoupper(Str::random(4));
 
             $ticket = Ticket::create([
                 'ticket_code' => $ticketCode,
                 'destination_id' => $destination->id,
-                'user_id' => $request->user()->id, // WAJIB ADA karena dilindungi auth:sanctum
+                'user_id' => $request->user()->id, 
                 'visitor_count' => $validated['visitor_count'],
                 'visit_date' => $validated['visit_date'],
                 'total_price' => $basePrice,
                 'payment_method' => $validated['payment_method'],
                 'payment_proof' => '/storage/' . $proofPath,
-                'payment_status' => 'pending', // Menunggu verifikasi admin
+                'payment_status' => 'pending', 
                 'ticket_status' => 'valid',
             ]);
 
-            // Jika wisatawan memesan paket bundling hampers UMKM
+            // Jika wisatawan memesan paket bundling / item produk UMKM
             if (!empty($validated['items'])) {
                 foreach ($validated['items'] as $itemData) {
                     $product = UmkmProduct::findOrFail($itemData['umkm_product_id']);
                     $subtotal = $product->price * $itemData['quantity'];
                     $itemsTotal += $subtotal;
 
+                    // Simpan item transaksi tiket (Stok belum dikurangi di sini)
                     TicketItem::create([
                         'ticket_id' => $ticket->id,
                         'umkm_product_id' => $product->id,
@@ -83,7 +84,7 @@ class TicketController extends Controller
                     ]);
                 }
                 
-                // Perbarui total harga keseluruhan (Tiket + Bundling UMKM)
+                // Perbarui total harga keseluruhan (Tiket Wisata + Produk UMKM)
                 $ticket->update(['total_price' => $basePrice + $itemsTotal]);
             }
 
@@ -132,7 +133,6 @@ class TicketController extends Controller
         ]);
     }
 
-
     // 4. Riwayat E-Ticket untuk Wisatawan yang Sedang Login (/api/user/tickets)
     public function userHistory(Request $request)
     {
@@ -147,20 +147,45 @@ class TicketController extends Controller
         ]);
     }
 
-    // 5. Menyetujui Pembayaran Tiket oleh Admin
+    // 5. Menyetujui Pembayaran Tiket oleh Admin (STOK UMKM DIKURANGI DI SINI)
     public function approve($id)
     {
-        $ticket = Ticket::findOrFail($id);
+        $ticket = Ticket::with('ticketItems.umkmProduct')->findOrFail($id);
 
-        $ticket->update([
-            'payment_status' => 'paid',
-            'ticket_status' => 'valid',
-        ]);
+        // Cegah persetujuan ganda jika sudah pernah disetujui sebelumnya
+        if ($ticket->payment_status === 'paid') {
+            return response()->json([
+                'message' => 'Pembayaran ini sudah pernah disetujui sebelumnya.'
+            ], 422);
+        }
 
-        return response()->json([
-            'message' => 'Pembayaran tiket berhasil diverifikasi dan disetujui!',
-            'data' => $ticket
-        ]);
+        return DB::transaction(function () use ($ticket) {
+            // Cek dan kurangi stok produk UMKM berdasarkan item yang dibeli di tiket ini
+            foreach ($ticket->ticketItems as $item) {
+                $product = $item->umkmProduct;
+
+                if ($product) {
+                    // Validasi apakah stok fisik saat ini mencukupi
+                    if ($product->stock < $item->quantity) {
+                        throw new \Exception("Gagal menyetujui: Stok produk '{$product->name}' sisa {$product->stock}, tidak mencukupi untuk pesanan ini.");
+                    }
+
+                    // Kurangi stok fisik produk UMKM
+                    $product->decrement('stock', $item->quantity);
+                }
+            }
+
+            // Ubah status pembayaran menjadi paid dan tiket valid
+            $ticket->update([
+                'payment_status' => 'paid',
+                'ticket_status' => 'valid',
+            ]);
+
+            return response()->json([
+                'message' => 'Pembayaran tiket berhasil diverifikasi, disetujui, dan stok UMKM telah diperbarui!',
+                'data' => $ticket->load(['destination', 'ticketItems.umkmProduct'])
+            ]);
+        });
     }
 
     // 6. Menolak Pembayaran Tiket dengan Keterangan oleh Admin
@@ -175,8 +200,6 @@ class TicketController extends Controller
         $ticket->update([
             'payment_status' => 'cancelled',
             'ticket_status' => 'expired',
-            // Pastikan Anda sudah menambahkan kolom 'rejection_reason' pada tabel 'tickets' via migration, 
-            // atau simpan di kolom lain jika ada.
             'rejection_reason' => $validated['rejection_reason'], 
         ]);
 
@@ -186,8 +209,7 @@ class TicketController extends Controller
         ]);
     }
 
-
-   public function scannedLogs(Request $request)
+    public function scannedLogs(Request $request)
     {
         $logs = Ticket::with(['destination', 'user'])
             ->where('ticket_status', 'used')

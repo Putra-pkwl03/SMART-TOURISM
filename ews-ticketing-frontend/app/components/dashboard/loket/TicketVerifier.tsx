@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { QrCode, Camera, Search, CheckCircle2, AlertTriangle, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import CameraScannerModal from './CameraScannerModal';
+import { getApiUrl } from '@/app/lib/backend-url';
 
 export default function TicketVerifier() {
     const router = useRouter();
@@ -29,9 +30,7 @@ export default function TicketVerifier() {
 
         try {
             const token = localStorage.getItem('token') || '';
-            const backendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
-
-            const response = await fetch(`${backendBaseUrl}/api/tickets/verify`, {
+            const response = await fetch(`${getApiUrl()}/tickets/verify`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

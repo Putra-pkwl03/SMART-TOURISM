@@ -35,4 +35,23 @@ class UmkmProduct extends Model
     {
         return $this->hasMany(ConsignmentSettlement::class);
     }
+
+
+    /**
+     * Relasi ke item tiket (Penjualan via Bundling Tiket)
+     */
+    public function ticketItems()
+    {
+        return $this->hasMany(TicketItem::class);
+    }
+
+    /**
+     * Shortcut untuk langsung mengambil data Tiket yang memesan produk ini
+     */
+    public function tickets()
+    {
+        return $this->belongsToMany(Ticket::class, 'ticket_items')
+                    ->withPivot('quantity', 'subtotal_price')
+                    ->withTimestamps();
+    }
 }

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, ArrowRight, Loader2, Images as ImageIcon, ChevronLeft, ChevronRight, Boxes, Ticket } from 'lucide-react';
+import { MapPin, ArrowRight, Images as ImageIcon, ChevronLeft, ChevronRight, Boxes, Ticket } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { getBackendUrl } from '@/app/lib/backend-url';
 
 interface UmkmProduct {
     id: number;
@@ -34,7 +35,7 @@ interface DestinationCatalogProps {
 
 export default function DestinationCatalog({ destinations, loading }: DestinationCatalogProps) {
     const router = useRouter();
-    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+    const BACKEND_URL = getBackendUrl();
 
     const [activeImageIndexes, setActiveImageIndexes] = useState<{ [key: number]: number }>({});
     const [hoveredCardId, setHoveredCardId] = useState<number | null>(null);
@@ -146,9 +147,31 @@ export default function DestinationCatalog({ destinations, loading }: Destinatio
             </div>
 
             {loading ? (
-                <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-emerald-700" />
-                    <span className="text-xs">Memuat katalog destinasi...</span>
+                <div
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+                    role="status"
+                    aria-label="Memuat katalog destinasi"
+                >
+                    {[1, 2, 3].map((card) => (
+                        <div key={card} className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm animate-pulse">
+                            <div className="h-64 bg-slate-200" />
+                            <div className="space-y-4 p-5 pb-3">
+                                <div className="h-5 w-3/4 rounded bg-slate-200" />
+                                <div className="space-y-2">
+                                    <div className="h-3 w-full rounded bg-slate-100" />
+                                    <div className="h-3 w-5/6 rounded bg-slate-100" />
+                                </div>
+                                <div className="flex items-center justify-between rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2">
+                                    <div className="h-3 w-1/3 rounded bg-slate-200" />
+                                    <div className="h-3 w-1/4 rounded bg-emerald-100" />
+                                </div>
+                            </div>
+                            <div className="mt-1 flex items-center justify-between border-t border-slate-50 px-5 py-3">
+                                <div className="h-3 w-1/2 rounded bg-slate-100" />
+                                <div className="h-8 w-8 rounded-xl bg-slate-100" />
+                            </div>
+                        </div>
+                    ))}
                 </div>
             ) : destinations.length === 0 ? (
                 <div className="text-center py-16 bg-slate-50 rounded-3xl border border-dashed border-slate-200">

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 
 interface QuickBookingBarProps {
     destinations: any[];
+    umkmProducts?: any[]; // Tambahan prop data produk UMKM
     selectedDestination: number | '';
     setSelectedDestination: (val: number | '') => void;
     visitorCount: number;
@@ -19,6 +20,7 @@ interface QuickBookingBarProps {
 
 export default function QuickBookingBar({
     destinations,
+    umkmProducts = [],
     selectedDestination,
     setSelectedDestination,
     visitorCount,
@@ -29,34 +31,32 @@ export default function QuickBookingBar({
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<'tiket' | 'paket' | 'hampers'>('tiket');
 
-    // Logika Filter Berdasarkan Tab:
-    // - 'tiket': Menampilkan SEMUA item tanpa terkecuali
-    // - 'paket': Hanya menampilkan item bertipe 'package'
-    // - 'hampers': Hanya menampilkan item bertipe 'hampers' atau 'product'
-    const filteredDestinations = destinations.filter((dest) => {
+    // Data yang ditampilkan pada dropdown berdasarkan tab yang aktif
+    const currentOptions = activeTab === 'hampers' ? umkmProducts : destinations.filter((dest) => {
         const itemType = dest.type_entry || dest.type;
-        if (activeTab === 'tiket') {
-            return true; // Menampilkan semua untuk tiket wisata
-        }
-        if (activeTab === 'paket') {
-            return itemType === 'package';
-        }
-        if (activeTab === 'hampers') {
-            return itemType === 'hampers' || itemType === 'product';
-        }
+        if (activeTab === 'tiket') return true;
+        if (activeTab === 'paket') return itemType === 'package';
         return true;
     });
 
-    // Reset pilihan destinasi saat tab diganti agar sinkron
     const handleTabChange = (tab: 'tiket' | 'paket' | 'hampers') => {
         setActiveTab(tab);
-        setSelectedDestination('');
+        setSelectedDestination(''); // Reset pilihan saat pindah tab
     };
 
     const handleQuickSearch = (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!selectedDestination) {
+            // Jika user di tab hampers dan belum memilih, arahkan scroll ke seksi #umkm
+            if (activeTab === 'hampers') {
+                const umkmElement = document.getElementById('umkm');
+                if (umkmElement) {
+                    umkmElement.scrollIntoView({ behavior: 'smooth' });
+                    return;
+                }
+            }
+            
             const catalogElement = document.getElementById('destinasi');
             if (catalogElement) {
                 catalogElement.scrollIntoView({ behavior: 'smooth' });
@@ -66,6 +66,17 @@ export default function QuickBookingBar({
             return;
         }
 
+        // Jika tab adalah hampers UMKM, arahkan ke detail produk atau tangani pembelian standalone
+        if (activeTab === 'hampers') {
+            toast.info(`Mengarahkan ke produk pilihan Anda...`);
+            const umkmElement = document.getElementById('umkm');
+            if (umkmElement) {
+                umkmElement.scrollIntoView({ behavior: 'smooth' });
+            }
+            return;
+        }
+
+        // Untuk tiket / paket wisata standar
         const queryParams = new URLSearchParams();
         if (visitDate) queryParams.append('date', visitDate);
         if (visitorCount) queryParams.append('visitors', String(visitorCount));
@@ -85,7 +96,7 @@ export default function QuickBookingBar({
                     <h3 className="text-lg font-bold text-black">Rencanakan Perjalanan Anda</h3>
                 </div>
 
-                {/* Tabs Header dengan Gaya Aktif Hijau Gelap */}
+                {/* Tabs Header */}
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-4 mb-6">
                     <button
                         type="button"
@@ -139,21 +150,23 @@ export default function QuickBookingBar({
                             <option value="">
                                 {activeTab === 'tiket' ? 'Semua Destinasi' : activeTab === 'paket' ? 'Semua Paket Wisata' : 'Semua Hampers UMKM'}
                             </option>
-                            {filteredDestinations.map((dest) => (
-                                <option key={dest.id} value={dest.id}>
-                                    {dest.name} — Rp {dest.ticket_price?.toLocaleString('id-ID')}
+                            {currentOptions.map((item) => (
+                                <option key={item.id} value={item.id}>
+                                    {item.name} — Rp {(item.ticket_price || item.price)?.toLocaleString('id-ID')}
                                 </option>
                             ))}
                         </select>
                     </div>
 
                     <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Tanggal Kunjungan</label>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                            {activeTab === 'hampers' ? 'Tanggal Pembelian / Ambil' : 'Tanggal Kunjungan'}
+                        </label>
                         <div className="relative">
                             <Calendar className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
                             <input
                                 type="date"
-                                required
+                                required={activeTab !== 'hampers'}
                                 value={visitDate}
                                 onChange={(e) => setVisitDate(e.target.value)}
                                 className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-900 outline-none transition"
@@ -162,7 +175,9 @@ export default function QuickBookingBar({
                     </div>
 
                     <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Jumlah Pengunjung</label>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                            {activeTab === 'hampers' ? 'Jumlah Item (Pcs)' : 'Jumlah Pengunjung'}
+                        </label>
                         <div className="relative">
                             <Users className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
                             <input

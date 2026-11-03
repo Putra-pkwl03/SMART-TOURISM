@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { MapPin, Loader2, Images as ImageIcon, ShieldCheck, Ticket, Boxes } from 'lucide-react';
 import { apiClient } from '@/app/lib/axios';
+import { getBackendUrl } from '@/app/lib/backend-url';
 import { toast } from 'sonner';
 
 import PublicNavbar from '@/app/components/public/PublicNavbar';
@@ -43,7 +44,7 @@ function DestinationDetailContent() {
     const [createdTicketData, setCreatedTicketData] = useState<any>(null);
     const [submitting, setSubmitting] = useState(false);
 
-    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+    const BACKEND_URL = getBackendUrl();
 
     useEffect(() => {
         if (id) {
@@ -91,6 +92,20 @@ function DestinationDetailContent() {
             formData.append('visit_date', visitDate);
             formData.append('payment_method', selectedMethod);
             formData.append('payment_proof', proofFile);
+
+            // Menyertakan data produk UMKM bundling (jika ada)
+            const linkedProducts = destination.umkm_products || destination.umkmProducts || [];
+            if (linkedProducts.length > 0) {
+                linkedProducts.forEach((prod: any, index: number) => {
+                    // Sesuaikan kuantitas bundling: 
+                    // Jika 1 paket bundling berlaku untuk setiap tiket, gunakan (1 * ticketCount).
+                    // Jika paket bersifat tetap per transaksi, cukup gunakan nilai tetap (misal: 1).
+                    const itemQuantity = 1 * ticketCount; 
+
+                    formData.append(`items[${index}][umkm_product_id]`, String(prod.id));
+                    formData.append(`items[${index}][quantity]`, String(itemQuantity)); 
+                });
+            }
 
             const token = localStorage.getItem('token');
 

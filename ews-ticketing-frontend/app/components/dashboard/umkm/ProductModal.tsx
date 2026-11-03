@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Loader2, Tag, DollarSign, Package, FileText, Sparkles } from 'lucide-react';
 import { apiClient } from '@/app/lib/axios';
+import { getBackendUrl } from '@/app/lib/backend-url';
 import { toast } from 'sonner';
 import ProductImageUploader from './ProductImageUploader';
 
@@ -36,7 +37,7 @@ export default function ProductModal({ isOpen, onClose, onSuccess, productToEdit
             
             if (productToEdit.images && productToEdit.images.length > 0) {
                 // Simpan objek gambar asli beserta URL-nya untuk pelacakan ID
-              const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+              const BACKEND_URL = getBackendUrl();
 
                 const existingPreviews = productToEdit.images.map(
                     (img: any) => `${BACKEND_URL}/storage/${img.image_path}`

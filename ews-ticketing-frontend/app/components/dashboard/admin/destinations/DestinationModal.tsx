@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import DestinationFormContent from './DestinationFormContent';
 import { apiClient } from '@/app/lib/axios';
+import { getBackendUrl } from '@/app/lib/backend-url';
 import { DestinationItem } from './DestinationTable'; 
 
 interface GalleryItem {
@@ -43,7 +44,7 @@ export default function DestinationModal({ isOpen, onClose, onSave, initialData 
         if (url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://')) {
             return url;
         }
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+        const backendUrl = getBackendUrl();
         return `${backendUrl}${url.startsWith('/') ? '' : '/'}${url}`;
     };
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Package, Edit, Trash2, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Layers } from 'lucide-react';
+import { getBackendUrl } from '@/app/lib/backend-url';
 import StockUpdateModal from './StockUpdateModal';
 
 interface ProductTableProps {
@@ -51,7 +52,7 @@ export default function ProductTable({
         }
     };
 
-    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+    const BACKEND_URL = getBackendUrl();
 
     if (loading) {
         return (
