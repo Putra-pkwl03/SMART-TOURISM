@@ -85,7 +85,7 @@ export default function PublicLandingPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans scrollbar-thin scrollbar-thumb-emerald-500/40 scrollbar-track-transparent [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-emerald-500/40 hover:[&::-webkit-scrollbar-thumb]:bg-emerald-600/60 transition-all">
             <PublicNavbar />
             <HeroSection />
             
