@@ -72,7 +72,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
         { name: 'EWS', href: '/dashboard/admin/ews', icon: Activity },
         { name: 'Peringatan', href: '/dashboard/admin/alerts', icon: AlertTriangle },
         { name: 'Konsinyasi', href: '/dashboard/admin/consignment', icon: PieChart },
-        { name: 'Pengaturan', href: '/dashboard/admin/settings', icon: Settings },
+        { name: 'Laporan', href: '/dashboard/admin/reports', icon: Settings },
     ];
 
     // Daftar Menu untuk Petugas Lapangan / Loket (Ticketing Officer)

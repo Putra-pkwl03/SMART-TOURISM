@@ -6,6 +6,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DestinationController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\UmkmProductController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ConsignmentController;
 
 // Public Route (Bisa diakses siapa saja tanpa token)
 Route::post('/auth/login', [AuthController::class, 'login']);
@@ -40,6 +42,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tickets', [TicketController::class, 'index']);
     Route::patch('/tickets/{id}/approve', [TicketController::class, 'approve']);
     Route::patch('/tickets/{id}/reject', [TicketController::class, 'reject']);
+
+
+    Route::get('/admin/dashboard-stats', [ReportController::class, 'dashboardStats']);
+    Route::get('/admin/reports/eom-consignment', [ReportController::class, 'endOfMonthConsignmentReport']);
+    
+    Route::get('/admin/consignments', [ConsignmentController::class, 'index']);
+    Route::post('/admin/consignments', [ConsignmentController::class, 'store']);
 
     // Manajemen Produk & Stok UMKM (Terproteksi untuk Admin/Mitra UMKM)
     Route::prefix('umkm')->group(function () {

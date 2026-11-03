@@ -19,12 +19,11 @@ export default function ProductModal({ isOpen, onClose, onSuccess, productToEdit
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('');
-    const [stock, setStock] = useState('');
+    const [initialStock, setInitialStock] = useState(''); // Diubah dari 'stock' ke 'initial_stock'
     const [umkmShareAmount, setUmkmShareAmount] = useState('');
     
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-    // Menyimpan ID gambar lama yang dihapus agar backend tahu gambar mana yang harus di-delete
     const [removedImageIds, setRemovedImageIds] = useState<number[]>([]);
 
     useEffect(() => {
@@ -32,13 +31,12 @@ export default function ProductModal({ isOpen, onClose, onSuccess, productToEdit
             setName(productToEdit.name || '');
             setDescription(productToEdit.description || '');
             setPrice(productToEdit.price || '');
-            setStock(productToEdit.stock || '');
+            // Saat edit, ambil initial_stock jika ada, fallback ke stock berjalan
+            setInitialStock(productToEdit.initial_stock || productToEdit.stock || '');
             setUmkmShareAmount(productToEdit.umkm_share_amount || '');
             
             if (productToEdit.images && productToEdit.images.length > 0) {
-                // Simpan objek gambar asli beserta URL-nya untuk pelacakan ID
-              const BACKEND_URL = getBackendUrl();
-
+                const BACKEND_URL = getBackendUrl();
                 const existingPreviews = productToEdit.images.map(
                     (img: any) => `${BACKEND_URL}/storage/${img.image_path}`
                 );
@@ -53,7 +51,7 @@ export default function ProductModal({ isOpen, onClose, onSuccess, productToEdit
             setName('');
             setDescription('');
             setPrice('');
-            setStock('');
+            setInitialStock('');
             setUmkmShareAmount('');
             setImageFiles([]);
             setImagePreviews([]);
@@ -74,20 +72,12 @@ export default function ProductModal({ isOpen, onClose, onSuccess, productToEdit
     const handleRemoveImage = (index: number) => {
         const targetPreview = imagePreviews[index];
 
-        // Jika gambar yang dihapus adalah gambar lama dari database (bukan berformat blob:)
         if (productToEdit && productToEdit.images && !targetPreview.startsWith('blob:')) {
-            // Cari tahu gambar lama ke-berapa yang dihapus
-            const oldImagesCount = productToEdit.images.length;
-            // Hitung index relatif terhadap gambar lama
             const matchedImage = productToEdit.images[index];
             if (matchedImage) {
                 setRemovedImageIds((prev) => [...prev, matchedImage.id]);
             }
         } else if (targetPreview.startsWith('blob:')) {
-            // Jika itu gambar baru yang di-upload lokal
-            // Hitung posisi file baru di dalam array imageFiles
-            const oldImagesCount = (productToEdit?.images || []).length;
-            const existingRemovedOldCount = removedImageIds.length; // Estimasi
             const fileIndex = index - (imagePreviews.filter(p => !p.startsWith('blob:')).length);
             
             if (fileIndex >= 0 && fileIndex < imageFiles.length) {
@@ -96,7 +86,6 @@ export default function ProductModal({ isOpen, onClose, onSuccess, productToEdit
             URL.revokeObjectURL(targetPreview);
         }
 
-        // Hapus dari preview tampilan
         setImagePreviews((prev) => prev.filter((_, i) => i !== index));
     };
 
@@ -111,21 +100,21 @@ export default function ProductModal({ isOpen, onClose, onSuccess, productToEdit
         formData.append('name', name);
         formData.append('description', description);
         formData.append('price', price);
-        formData.append('stock', stock);
+        // Kirim 'initial_stock' sesuai dengan validasi backend Laravel terbaru
+        formData.append('initial_stock', initialStock);
         formData.append('umkm_share_amount', umkmShareAmount);
 
-        // Lampirkan file gambar baru
         imageFiles.forEach((file) => {
             formData.append('images[]', file);
         });
 
-        // Lampirkan ID gambar lama yang dihapus (jika backend mendukung penghapusan via array ID)
         removedImageIds.forEach((id) => {
             formData.append('removed_image_ids[]', id.toString());
         });
 
         try {
             if (productToEdit) {
+                // Gunakan _method PUT/POST sesuai konfigurasi API Laravel Anda (biasanya pakai POST dengan _method=PUT atau langsung post)
                 await apiClient.post(`/umkm/products/${productToEdit.id}`, formData);
                 toast.success('Produk berhasil diperbarui!');
             } else {
@@ -146,7 +135,7 @@ export default function ProductModal({ isOpen, onClose, onSuccess, productToEdit
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-hidden">
             <div className="bg-white border border-gray-100 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
                 
-                {/* Header Dekoratif Varian Warna (green & Slate - Tidak Terlalu Biru) */}
+                {/* Header Dekoratif */}
                 <div className="relative bg-slate-50 p-5 text-white flex-shrink-0">
                     <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-32 h-32 bg-green-500/10 rounded-full blur-2xl pointer-events-none"></div>
                     <div className="flex items-center justify-between relative z-10">
@@ -165,7 +154,7 @@ export default function ProductModal({ isOpen, onClose, onSuccess, productToEdit
                         </div>
                         <button 
                             onClick={onClose} 
-                            className="w-8 h-8  hover:text-gray-700 flex items-center justify-center text-gray-500 transition cursor-pointer"
+                            className="w-8 h-8 hover:text-gray-700 flex items-center justify-center text-gray-500 transition cursor-pointer"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -229,7 +218,7 @@ export default function ProductModal({ isOpen, onClose, onSuccess, productToEdit
                         </div>
                     </div>
 
-                    {/* Stok Awal */}
+                    {/* Stok Awal (Diubah state-nya dari 'stock' ke 'initialStock') */}
                     <div>
                         <label className="block text-gray-700 font-bold mb-1.5 flex items-center gap-1.5">
                             <Package className="w-3.5 h-3.5 text-green-600" />
@@ -238,8 +227,8 @@ export default function ProductModal({ isOpen, onClose, onSuccess, productToEdit
                         <input 
                             type="number" 
                             required 
-                            value={stock} 
-                            onChange={(e) => setStock(e.target.value)}
+                            value={initialStock} 
+                            onChange={(e) => setInitialStock(e.target.value)}
                             placeholder="30"
                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white transition"
                         />
@@ -279,7 +268,7 @@ export default function ProductModal({ isOpen, onClose, onSuccess, productToEdit
                         <button 
                             type="submit" 
                             disabled={loading}
-                            className="flex items-center rounded-2xl gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white shadow-lg shadow-emerald-600/25 transition-all  transform active:scale-95 disabled:opacity-75 disabled:cursor-not-allowed cursor-pointer"
+                            className="flex items-center rounded-2xl gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white shadow-lg shadow-emerald-600/25 transition-all transform active:scale-95 disabled:opacity-75 disabled:cursor-not-allowed cursor-pointer"
                         >
                             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                             <span>Simpan Data</span>

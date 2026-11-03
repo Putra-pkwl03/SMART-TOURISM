@@ -10,7 +10,7 @@ interface ProductTableProps {
     loading: boolean;
     onEdit: (product: any) => void;
     onDelete: (id: number) => void;
-    onSuccess: () => void; // Ditambahkan agar tabel bisa me-refresh data setelah update stok
+    onSuccess: () => void;
     totalCount: number;
 }
 
@@ -26,7 +26,6 @@ export default function ProductTable({
     const [activeImageIndexes, setActiveImageIndexes] = useState<{ [key: number]: number }>({});
     const [deleteId, setDeleteId] = useState<number | null>(null);
     
-    // State untuk modal update stok cepat
     const [stockModalProduct, setStockModalProduct] = useState<any | null>(null);
 
     const toggleRow = (id: number) => {
@@ -84,7 +83,7 @@ export default function ProductTable({
                             <th className="py-3.5 px-4 rounded-l-xl">Produk</th>
                             <th className="py-3.5 px-4">Harga Jual</th>
                             <th className="py-3.5 px-4">Bagi Hasil UMKM</th>
-                            <th className="py-3.5 px-4">Stok</th>
+                            <th className="py-3.5 px-4">Stok (Sisa / Awal)</th>
                             <th className="py-3.5 px-4">Status</th>
                             <th className="py-3.5 px-4 text-right rounded-r-xl">Aksi</th>
                         </tr>
@@ -124,11 +123,16 @@ export default function ProductTable({
                                         <td className="py-4 px-4 font-semibold text-gray-900">Rp {Number(item.price).toLocaleString('id-ID')}</td>
                                         <td className="py-4 px-4 font-bold text-emerald-600">Rp {Number(item.umkm_share_amount).toLocaleString('id-ID')}</td>
                                         <td className="py-4 px-4">
-                                            <span className={`px-2.5 py-1 rounded-lg font-bold ${
-                                                item.stock <= 5 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-gray-100 text-gray-800'
-                                            }`}>
-                                                {item.stock} Pcs
-                                            </span>
+                                            <div className="flex flex-col">
+                                                <span className={`font-bold ${
+                                                    item.stock <= 5 ? 'text-amber-700' : 'text-gray-900'
+                                                }`}>
+                                                    {item.stock} Pcs <span className="text-[10px] font-normal text-gray-400">(Sisa)</span>
+                                                </span>
+                                                <span className="text-[10px] text-gray-500">
+                                                    Awal: {item.initial_stock || item.stock} Pcs
+                                                </span>
+                                            </div>
                                         </td>
                                         <td className="py-4 px-4">
                                             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
@@ -141,11 +145,10 @@ export default function ProductTable({
                                             </span>
                                         </td>
                                         <td className="py-4 px-4 text-right space-x-1.5" onClick={(e) => e.stopPropagation()}>
-                                            {/* Tombol Update Stok Cepat */}
                                             <button 
                                                 onClick={() => setStockModalProduct(item)}
                                                 className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold rounded-md transition inline-flex items-center gap-1 cursor-pointer border border-amber-200 shadow-xs"
-                                                title="Update Stok Cepat"
+                                                title="Update Stok Cepat / Restock"
                                             >
                                                 <Layers className="w-3 h-3" />
                                             </button>
@@ -174,7 +177,7 @@ export default function ProductTable({
                                                     <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                                                         <h4 className="font-extrabold text-gray-900 text-xs flex items-center gap-2">
                                                             <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
-                                                            Informasi Detail & Galeri: {item.name}
+                                                            Informasi Detail: {item.name}
                                                         </h4>
                                                         <button 
                                                             onClick={() => setExpandedRowId(null)}
@@ -205,9 +208,9 @@ export default function ProductTable({
                                                                                 className={`relative aspect-square rounded-lg overflow-hidden border-2 transition cursor-pointer ${
                                                                                     currentImgIdx === idx ? 'border-indigo-600 ring-2 ring-indigo-500/20' : 'border-gray-200 opacity-60 hover:opacity-100'
                                                                                 }`}
-                                                                            >
-                                                                                <img src={`${BACKEND_URL}/storage/${img.image_path}`} alt="Thumb" className="w-full h-full object-cover" />
-                                                                            </button>
+                                                                               >
+                                                                                    <img src={`${BACKEND_URL}/storage/${img.image_path}`} alt="Thumb" className="w-full h-full object-cover" />
+                                                                               </button>
                                                                             ))}
                                                                         </div>
                                                                     )}
@@ -228,13 +231,18 @@ export default function ProductTable({
                                                                 </p>
                                                             </div>
 
-                                                            <div className="grid grid-cols-2 gap-3 pt-1">
+                                                            {/* Kotak Ringkasan Stok (Menampilkan Stok Awal & Sisa Stok) */}
+                                                            <div className="grid grid-cols-3 gap-3 pt-1">
                                                                 <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                                                    <span className="text-[10px] font-bold text-gray-400 block">Stok Gudang</span>
-                                                                    <span className="text-sm font-extrabold text-gray-900">{item.stock} Pcs</span>
+                                                                    <span className="text-[10px] font-bold text-gray-400 block">Stok Awal Titipan</span>
+                                                                    <span className="text-sm font-extrabold text-gray-900">{item.initial_stock || item.stock} Pcs</span>
+                                                                </div>
+                                                                <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+                                                                    <span className="text-[10px] font-bold text-indigo-600 block">Sisa Stok Berjalan</span>
+                                                                    <span className="text-sm font-extrabold text-indigo-700">{item.stock} Pcs</span>
                                                                 </div>
                                                                 <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100">
-                                                                    <span className="text-[10px] font-bold text-emerald-600 block">Porsi Pendapatan UMKM</span>
+                                                                    <span className="text-[10px] font-bold text-emerald-600 block">Hak UMKM / Pcs</span>
                                                                     <span className="text-sm font-extrabold text-emerald-600">Rp {Number(item.umkm_share_amount).toLocaleString('id-ID')}</span>
                                                                 </div>
                                                             </div>

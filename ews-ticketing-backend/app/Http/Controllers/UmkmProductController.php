@@ -15,8 +15,6 @@ class UmkmProductController extends Controller
      */
     public function index(Request $request)
     {
-        // Jika user memiliki umkm_id tertentu, filter berdasarkan itu. 
-        // Jika admin utama, bisa melihat semua produk.
         $query = UmkmProduct::with('images');
 
         if ($request->has('umkm_id')) {
@@ -41,13 +39,16 @@ class UmkmProductController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|integer|min:0',
-            'stock' => 'required|integer|min:0',
-            'umkm_share_amount' => 'required|integer|min:0', // Bagi hasil / pendapatan bersih UMKM
-            'images.*' => 'image|mimes:jpeg,png,jpg|max:2048', // Validasi file gambar
+            'initial_stock' => 'required|integer|min:0', // Stok awal titipan
+            'umkm_share_amount' => 'required|integer|min:0',
+            'images.*' => 'image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']) . '-' . uniqid();
         $validated['is_active'] = true;
+        
+        // Stok berjalan otomatis disamakan dengan stok awal saat pertama dibuat
+        $validated['stock'] = $validated['initial_stock'];
 
         // Simpan produk utama
         $product = UmkmProduct::create($validated);
@@ -55,13 +56,11 @@ class UmkmProductController extends Controller
         // Proses Upload Multi-Gambar
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $image) {
-                // Simpan ke storage public/products
                 $path = $image->store('products', 'public');
 
                 UmkmProductImage::create([
                     'umkm_product_id' => $product->id,
                     'image_path' => $path,
-                    // Gambar pertama otomatis dijadikan gambar utama (thumbnail)
                     'is_primary' => $index === 0 ? true : false, 
                 ]);
             }
@@ -87,7 +86,7 @@ class UmkmProductController extends Controller
         ]);
     }
 
-   /**
+    /**
      * Memperbarui data produk dan opsi tambah/hapus gambar
      */
     public function update(Request $request, $id)
@@ -98,11 +97,12 @@ class UmkmProductController extends Controller
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'price' => 'sometimes|integer|min:0',
+            'initial_stock' => 'sometimes|integer|min:0',
             'stock' => 'sometimes|integer|min:0',
             'umkm_share_amount' => 'sometimes|integer|min:0',
             'is_active' => 'sometimes|boolean',
             'images.*' => 'image|mimes:jpeg,png,jpg|max:2048',
-            'removed_image_ids' => 'nullable|array', // Validasi array ID gambar yang ingin dihapus
+            'removed_image_ids' => 'nullable|array',
             'removed_image_ids.*' => 'integer|exists:umkm_product_images,id',
         ]);
 
@@ -112,23 +112,21 @@ class UmkmProductController extends Controller
 
         $product->update($validated);
 
-        // 1. PROSES HAPUS GAMBAR LAMA YANG DIPILIH DI FRONTEND
+        // 1. PROSES HAPUS GAMBAR LAMA
         if ($request->has('removed_image_ids')) {
             $imagesToRemove = UmkmProductImage::whereIn('id', $request->removed_image_ids)
                 ->where('umkm_product_id', $product->id)
                 ->get();
 
             foreach ($imagesToRemove as $img) {
-                // Hapus file fisik dari storage public
                 if (Storage::disk('public')->exists($img->image_path)) {
                     Storage::disk('public')->delete($img->image_path);
                 }
-                // Hapus record dari database
                 $img->delete();
             }
         }
 
-        // 2. PROSES TAMBAH GAMBAR BARU JIKA DIUNGGAH SAAT UPDATE
+        // 2. PROSES TAMBAH GAMBAR BARU
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $image) {
                 $path = $image->store('products', 'public');
@@ -136,7 +134,6 @@ class UmkmProductController extends Controller
                 UmkmProductImage::create([
                     'umkm_product_id' => $product->id,
                     'image_path' => $path,
-                    // Jika produk sudah tidak punya gambar sama sekali, jadikan utama
                     'is_primary' => $product->images()->count() === 0 ? true : false,
                 ]);
             }
@@ -148,6 +145,7 @@ class UmkmProductController extends Controller
             'data' => $product->load('images')
         ]);
     }
+
     /**
      * Menghapus produk beserta file gambarnya di storage
      */
@@ -155,7 +153,6 @@ class UmkmProductController extends Controller
     {
         $product = UmkmProduct::with('images')->findOrFail($id);
 
-        // Hapus file fisik gambar dari storage
         foreach ($product->images as $image) {
             if (Storage::disk('public')->exists($image->image_path)) {
                 Storage::disk('public')->delete($image->image_path);
@@ -171,7 +168,7 @@ class UmkmProductController extends Controller
     }
 
     /**
-     * Endpoint khusus untuk memperbarui stok secara cepat (Monitoring Stok/Konsinyasi)
+     * Endpoint untuk memperbarui atau menambah stok (Update Stok Cepat / Restock)
      */
     public function updateStock(Request $request, $id)
     {
@@ -180,7 +177,20 @@ class UmkmProductController extends Controller
         ]);
 
         $product = UmkmProduct::findOrFail($id);
-        $product->update(['stock' => $request->stock]);
+        
+        // Menghitung selisih penambahan stok (jika stok baru lebih besar dari stok lama)
+        $oldStock = $product->stock;
+        $newStock = $request->stock;
+        $diff = $newStock - $oldStock;
+
+        // Jika ada penambahan stok (restock), ikuti juga penambahan pada initial_stock (stok awal titipan)
+        if ($diff > 0) {
+            $product->initial_stock = ($product->initial_stock ?? $oldStock) + $diff;
+        }
+
+        // Perbarui sisa stok berjalan
+        $product->stock = $newStock;
+        $product->save();
 
         return response()->json([
             'status' => 'success',

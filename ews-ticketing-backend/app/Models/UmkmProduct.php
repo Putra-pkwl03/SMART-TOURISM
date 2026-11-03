@@ -15,7 +15,8 @@ class UmkmProduct extends Model
         'slug',
         'description',
         'price',
-        'stock',
+        'initial_stock',
+        'stock',        
         'umkm_share_amount',
         'is_active',
     ];
@@ -35,7 +36,6 @@ class UmkmProduct extends Model
     {
         return $this->hasMany(ConsignmentSettlement::class);
     }
-
 
     /**
      * Relasi ke item tiket (Penjualan via Bundling Tiket)

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Loader2, Package } from 'lucide-react';
 import { apiClient } from '@/app/lib/axios';
 import { toast } from 'sonner';
@@ -13,8 +13,15 @@ interface StockUpdateModalProps {
 }
 
 export default function StockUpdateModal({ product, isOpen, onClose, onSuccess }: StockUpdateModalProps) {
-    const [stock, setStock] = useState(product ? product.stock : '');
+    const [stock, setStock] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // Sinkronkan nilai input stok saat modal dibuka atau produk berubah
+    useEffect(() => {
+        if (product) {
+            setStock(product.stock !== undefined ? product.stock.toString() : '');
+        }
+    }, [product, isOpen]);
 
     if (!isOpen || !product) return null;
 
@@ -56,7 +63,7 @@ export default function StockUpdateModal({ product, isOpen, onClose, onSuccess }
 
                 <form onSubmit={handleSubmit} className="space-y-4 text-xs">
                     <div>
-                        <label className="block text-gray-700 font-bold mb-1.5">Jumlah Stok Baru (Pcs)</label>
+                        <label className="block text-gray-700 font-bold mb-1.5">Jumlah Sisa Stok Baru (Pcs)</label>
                         <input 
                             type="number" 
                             required 
@@ -66,6 +73,9 @@ export default function StockUpdateModal({ product, isOpen, onClose, onSuccess }
                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition font-bold text-sm"
                             placeholder="Masukkan jumlah stok..."
                         />
+                        <p className="text-[10px] text-gray-400 mt-1">
+                            Stok awal titipan tercatat: <span className="font-semibold text-gray-600">{product.initial_stock || product.stock} Pcs</span>
+                        </p>
                     </div>
 
                     <div className="flex gap-2.5 pt-2">

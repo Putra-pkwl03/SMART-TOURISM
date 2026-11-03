@@ -14,12 +14,11 @@ class TicketController extends Controller
 {
     public function index()
     {
-        // PERBAIKAN: Sertakan 'destination.images' agar foto destinasi ikut terkirim
         $tickets = Ticket::with(['destination.images', 'user', 'ticketItems.umkmProduct'])->latest()->get();
         return response()->json($tickets);
     }
 
-    // 2. Pemesanan Tiket Baru (Online Publik / Wisatawan Login)
+    // 2. Pemesanan Tiket Paket Bundling All-In
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -35,7 +34,6 @@ class TicketController extends Controller
 
         $destination = Destination::findOrFail($validated['destination_id']);
 
-        // Validasi EWS / Status Darurat Destinasi
         if (!$destination->is_active) {
             return response()->json([
                 'message' => 'Maaf, destinasi ini sedang ditutup sementara karena status darurat EWS cuaca buruk.'
@@ -43,16 +41,15 @@ class TicketController extends Controller
         }
 
         return DB::transaction(function () use ($validated, $destination, $request) {
-            $basePrice = $destination->ticket_price * $validated['visitor_count'];
-            $itemsTotal = 0;
+            // Karena ini ALL-IN, total harga murni dihitung dari harga paket destinasi dikali jumlah pengunjung.
+            // Harga satuan produk UMKM tidak ditambahkan lagi ke total tagihan pembeli.
+            $totalPackagePrice = $destination->ticket_price * $validated['visitor_count'];
 
-            // Handle Upload File Bukti Transfer
             $proofPath = null;
             if ($request->hasFile('payment_proof')) {
                 $proofPath = $request->file('payment_proof')->store('payment-proofs', 'public');
             }
 
-            // Generate Kode Unik Tiket
             $ticketCode = 'JT-' . date('ymd') . '-' . strtoupper(Str::random(4));
 
             $ticket = Ticket::create([
@@ -61,41 +58,35 @@ class TicketController extends Controller
                 'user_id' => $request->user()->id, 
                 'visitor_count' => $validated['visitor_count'],
                 'visit_date' => $validated['visit_date'],
-                'total_price' => $basePrice,
+                'total_price' => $totalPackagePrice, // Harga All-In Paket
                 'payment_method' => $validated['payment_method'],
                 'payment_proof' => '/storage/' . $proofPath,
                 'payment_status' => 'pending', 
                 'ticket_status' => 'valid',
             ]);
 
-            // Jika wisatawan memesan paket bundling / item produk UMKM
+            // Catat item produk UMKM yang didapat dalam paket bundling
             if (!empty($validated['items'])) {
                 foreach ($validated['items'] as $itemData) {
                     $product = UmkmProduct::findOrFail($itemData['umkm_product_id']);
-                    $subtotal = $product->price * $itemData['quantity'];
-                    $itemsTotal += $subtotal;
-
-                    // Simpan item transaksi tiket (Stok belum dikurangi di sini)
+                    
+                    // Subtotal item dicatat sebagai 0 atau proporsional karena sudah termasuk dalam harga all-in paket
                     TicketItem::create([
                         'ticket_id' => $ticket->id,
                         'umkm_product_id' => $product->id,
                         'quantity' => $itemData['quantity'],
-                        'subtotal_price' => $subtotal,
+                        'subtotal_price' => 0, // All-in sudah tercover di total_price paket
                     ]);
                 }
-                
-                // Perbarui total harga keseluruhan (Tiket Wisata + Produk UMKM)
-                $ticket->update(['total_price' => $basePrice + $itemsTotal]);
             }
 
             return response()->json([
-                'message' => 'Pemesanan tiket berhasil! Menunggu verifikasi admin.',
+                'message' => 'Pemesanan tiket paket bundling berhasil! Menunggu verifikasi admin.',
                 'data' => $ticket->load(['destination', 'ticketItems.umkmProduct'])
             ], 201);
         });
     }
 
-    // 3. Verifikasi & Scan Tiket oleh Petugas Loket (/dashboard/loket/scanner)
     public function verify(Request $request)
     {
         $validated = $request->validate([
@@ -120,7 +111,6 @@ class TicketController extends Controller
             return response()->json(['message' => 'Tiket telah kedaluwarsa.'], 422);
         }
 
-        // Eksekusi perubahan status menjadi used (sudah digunakan)
         $ticket->update([
             'ticket_status' => 'used',
             'used_at' => now(),
@@ -133,7 +123,6 @@ class TicketController extends Controller
         ]);
     }
 
-    // 4. Riwayat E-Ticket untuk Wisatawan yang Sedang Login (/api/user/tickets)
     public function userHistory(Request $request)
     {
         $tickets = Ticket::with(['destination', 'ticketItems.umkmProduct'])
@@ -147,12 +136,11 @@ class TicketController extends Controller
         ]);
     }
 
-    // 5. Menyetujui Pembayaran Tiket oleh Admin (STOK UMKM DIKURANGI DI SINI)
+    // 5. Menyetujui Pembayaran Tiket oleh Admin (Kalkulasi Bagi Hasil All-In)
     public function approve($id)
     {
-        $ticket = Ticket::with('ticketItems.umkmProduct')->findOrFail($id);
+        $ticket = Ticket::with(['destination', 'ticketItems.umkmProduct'])->findOrFail($id);
 
-        // Cegah persetujuan ganda jika sudah pernah disetujui sebelumnya
         if ($ticket->payment_status === 'paid') {
             return response()->json([
                 'message' => 'Pembayaran ini sudah pernah disetujui sebelumnya.'
@@ -160,35 +148,52 @@ class TicketController extends Controller
         }
 
         return DB::transaction(function () use ($ticket) {
-            // Cek dan kurangi stok produk UMKM berdasarkan item yang dibeli di tiket ini
             foreach ($ticket->ticketItems as $item) {
                 $product = $item->umkmProduct;
 
                 if ($product) {
-                    // Validasi apakah stok fisik saat ini mencukupi
                     if ($product->stock < $item->quantity) {
                         throw new \Exception("Gagal menyetujui: Stok produk '{$product->name}' sisa {$product->stock}, tidak mencukupi untuk pesanan ini.");
                     }
 
                     // Kurangi stok fisik produk UMKM
                     $product->decrement('stock', $item->quantity);
+
+                    // HITUNG BAGI HASIL KONSINYASI UNTUK PAKET ALL-IN
+                    // 1. Hak mutlak UMKM per unit dikali jumlah kuantiti
+                    $totalUmkmIncome = ($product->umkm_share_amount ?? 0) * $item->quantity;
+                    
+                    // 2. Bagian Pokdarwis adalah sisa dari Harga Paket All-In dikurangi Hak UMKM
+                    // Contoh: Paket Rp 80.000 - Hak UMKM Rp 20.000 = Rp 60.000 untuk Pokdarwis.
+                    $totalPokdarwisIncome = $ticket->total_price - $totalUmkmIncome;
+
+                    \App\Models\ConsignmentSettlement::create([
+                        'ticket_id' => $ticket->id,
+                        'umkm_product_id' => $product->id,
+                        'qty' => $item->quantity,
+                        'total_umkm_income' => $totalUmkmIncome,
+                        'total_pokdarwis_income' => max(0, $totalPokdarwisIncome),
+                    ]);
                 }
             }
 
-            // Ubah status pembayaran menjadi paid dan tiket valid
+            // Jika tiket tidak memiliki item UMKM (murni tiket biasa tanpa bundling)
+            if ($ticket->ticketItems->isEmpty()) {
+                // Seluruh pendapatan masuk ke Pokdarwis
+            }
+
             $ticket->update([
                 'payment_status' => 'paid',
                 'ticket_status' => 'valid',
             ]);
 
             return response()->json([
-                'message' => 'Pembayaran tiket berhasil diverifikasi, disetujui, dan stok UMKM telah diperbarui!',
+                'message' => 'Pembayaran paket bundling berhasil disetujui dan bagi hasil konsinyasi tercatat!',
                 'data' => $ticket->load(['destination', 'ticketItems.umkmProduct'])
             ]);
         });
     }
 
-    // 6. Menolak Pembayaran Tiket dengan Keterangan oleh Admin
     public function reject(Request $request, $id)
     {
         $validated = $request->validate([
