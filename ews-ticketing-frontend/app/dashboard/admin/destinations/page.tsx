@@ -221,7 +221,7 @@ export default function DestinationsPage() {
 
         {/* Teks Judul & Deskripsi */}
         <div>
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            <h1 className="text-lg font-extrabold text-slate-900 tracking-tight">
                 Destinasi Dan Paket Wisata
             </h1>
             <p className="text-xs text-slate-600 mt-1 leading-relaxed font-medium max-w-2xl">
