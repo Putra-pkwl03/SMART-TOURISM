@@ -15,6 +15,9 @@ class ConsignmentSettlement extends Model
         'qty',
         'total_umkm_income',
         'total_pokdarwis_income',
+        'status',
+        'settled_at',
+        'notes',
     ];
 
     public function ticket()

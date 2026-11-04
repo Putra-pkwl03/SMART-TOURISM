@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Package, Edit, Trash2, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Layers } from 'lucide-react';
 import { getBackendUrl } from '@/app/lib/backend-url';
 import StockUpdateModal from './StockUpdateModal';
@@ -94,7 +94,7 @@ export default function ProductTable({
                             const currentImgIdx = activeImageIndexes[item.id] || 0;
 
                             return (
-                                <tr key={`row-group-${item.id}`} className="contents">
+                                <Fragment key={item.id}>
                                     {/* Baris Utama Produk */}
                                     <tr 
                                         onClick={() => toggleRow(item.id)}
@@ -252,7 +252,7 @@ export default function ProductTable({
                                             </td>
                                         </tr>
                                     )}
-                                </tr>
+                                </Fragment>
                             );
                         })}
                     </tbody>

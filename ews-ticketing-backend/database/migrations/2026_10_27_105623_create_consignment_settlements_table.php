@@ -16,8 +16,14 @@ return new class extends Migration
             $table->foreignId('ticket_id')->constrained()->onDelete('cascade');
             $table->foreignId('umkm_product_id')->constrained()->onDelete('cascade');
             $table->integer('qty');
-            $table->integer('total_umkm_income'); // Hak pendapatan untuk UMKM Sedyo Maju[cite: 18, 21]
+            $table->integer('total_umkm_income'); // Hak pendapatan untuk UMKM Sedyo Maju
             $table->integer('total_pokdarwis_income'); // Porsi margin untuk Pokdarwis
+            
+            // Kolom tambahan untuk manajemen laporan EOM & pencairan dana
+            $table->enum('status', ['pending', 'paid'])->default('pending'); // Status pencairan ke UMKM
+            $table->timestamp('settled_at')->nullable(); // Waktu kapan dana dicairkan/dilunaskan
+            $table->text('notes')->nullable(); // Keterangan tambahan atau nomor Berita Acara
+            
             $table->timestamps();
         });
     }

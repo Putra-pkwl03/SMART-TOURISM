@@ -96,11 +96,11 @@ export default function ProductModal({ isOpen, onClose, onSuccess, productToEdit
         setLoading(true);
 
         const formData = new FormData();
-        formData.append('umkm_id', '1'); 
+        // HAPUS baris: formData.append('umkm_id', '1'); karena backend sudah otomatis mendeteksi dari auth()->id()
+        
         formData.append('name', name);
         formData.append('description', description);
         formData.append('price', price);
-        // Kirim 'initial_stock' sesuai dengan validasi backend Laravel terbaru
         formData.append('initial_stock', initialStock);
         formData.append('umkm_share_amount', umkmShareAmount);
 
@@ -114,7 +114,6 @@ export default function ProductModal({ isOpen, onClose, onSuccess, productToEdit
 
         try {
             if (productToEdit) {
-                // Gunakan _method PUT/POST sesuai konfigurasi API Laravel Anda (biasanya pakai POST dengan _method=PUT atau langsung post)
                 await apiClient.post(`/umkm/products/${productToEdit.id}`, formData);
                 toast.success('Produk berhasil diperbarui!');
             } else {

@@ -34,15 +34,23 @@ class UmkmProductController extends Controller
      */
     public function store(Request $request)
     {
+        // Sesuaikan dengan validasi (umkm_id dibuat nullable / diisi otomatis dari auth)
         $validated = $request->validate([
-            'umkm_id' => 'required|integer',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|integer|min:0',
-            'initial_stock' => 'required|integer|min:0', // Stok awal titipan
+            'initial_stock' => 'required|integer|min:0', 
             'umkm_share_amount' => 'required|integer|min:0',
             'images.*' => 'image|mimes:jpeg,png,jpg|max:2048',
         ]);
+
+        // Otomatis assign umkm_id dari user yang sedang login (atau relasi UMKM-nya)
+        // Jika tabel users berelasi langsung dengan umkm, atau user ID itu sendiri adalah UMKM ID:
+        $user = $request->user();
+        
+        // Cek jika user memiliki relasi umkm atau simpan ID user langsung
+        // (Sesuaikan jika Anda punya kolom umkm_id di tabel users, misal: $user->umkm_id)
+        $validated['umkm_id'] = $user->umkm_id ?? $user->id; 
 
         $validated['slug'] = Str::slug($validated['name']) . '-' . uniqid();
         $validated['is_active'] = true;

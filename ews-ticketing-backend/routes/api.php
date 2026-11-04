@@ -6,8 +6,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DestinationController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\UmkmProductController;
-use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ConsignmentController;
+use App\Http\Controllers\UmkmSalesController;
 
 // Public Route (Bisa diakses siapa saja tanpa token)
 Route::post('/auth/login', [AuthController::class, 'login']);
@@ -42,13 +42,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tickets', [TicketController::class, 'index']);
     Route::patch('/tickets/{id}/approve', [TicketController::class, 'approve']);
     Route::patch('/tickets/{id}/reject', [TicketController::class, 'reject']);
-
-
-    Route::get('/admin/dashboard-stats', [ReportController::class, 'dashboardStats']);
-    Route::get('/admin/reports/eom-consignment', [ReportController::class, 'endOfMonthConsignmentReport']);
     
+    // Modul Konsinyasi & Bagi Hasil (Admin)
     Route::get('/admin/consignments', [ConsignmentController::class, 'index']);
     Route::post('/admin/consignments', [ConsignmentController::class, 'store']);
+    Route::post('/admin/consignments/mark-paid', [ConsignmentController::class, 'markAsPaid']);
+    Route::get('/admin/consignments/export-pdf', [ConsignmentController::class, 'exportReport']);
 
     // Manajemen Produk & Stok UMKM (Terproteksi untuk Admin/Mitra UMKM)
     Route::prefix('umkm')->group(function () {
@@ -58,5 +57,12 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Khusus update stok cepat dari tabel monitoring dashboard
         Route::patch('/products/{id}/stock', [UmkmProductController::class, 'updateStock']);
+
+        // Manajemen Penjualan & Hampers UMKM
+        Route::get('/sales', [UmkmSalesController::class, 'index']);
+        Route::get('/sales-summary', [UmkmSalesController::class, 'productSalesSummary']);
+        Route::get('/sales/export-pdf', [UmkmSalesController::class, 'exportReport']);
+        Route::get('/sales/{id}', [UmkmSalesController::class, 'show']);
+
     });
 });

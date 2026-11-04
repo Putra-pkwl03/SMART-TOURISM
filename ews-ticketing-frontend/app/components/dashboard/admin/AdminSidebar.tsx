@@ -70,9 +70,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
         { name: 'Destinasi', href: '/dashboard/admin/destinations', icon: MapPin },
         { name: 'Tiket', href: '/dashboard/admin/tickets', icon: Ticket },
         { name: 'EWS', href: '/dashboard/admin/ews', icon: Activity },
-        { name: 'Peringatan', href: '/dashboard/admin/alerts', icon: AlertTriangle },
-        { name: 'Konsinyasi', href: '/dashboard/admin/consignment', icon: PieChart },
-        { name: 'Laporan', href: '/dashboard/admin/reports', icon: Settings },
+        { name: 'Konsinyasi dan Laporan', href: '/dashboard/admin/consignment', icon: PieChart },
     ];
 
     // Daftar Menu untuk Petugas Lapangan / Loket (Ticketing Officer)
@@ -85,9 +83,8 @@ export default function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
     // Daftar Menu untuk Mitra / Pengurus UMKM (UMKM Sedyo Maju)
     const umkmMenuItems = [
         { name: 'Dashboard UMKM', href: '/dashboard/umkm', icon: LayoutDashboard },
-        { name: 'Kelola Produk & Stok', href: '/dashboard/umkm/products', icon: Package },
-        { name: 'Penjualan & Hampers', href: '/dashboard/umkm/sales', icon: ShoppingBag },
-        { name: 'Laporan Bagi Hasil (EOM)', href: '/dashboard/umkm/reports', icon: DollarSign },
+        { name: 'Produk dan Stok', href: '/dashboard/umkm/products', icon: Package },
+        { name: 'Laporan Penjualan', href: '/dashboard/umkm/sales', icon: ShoppingBag },
     ];
 
     // Pengecekan role aktif

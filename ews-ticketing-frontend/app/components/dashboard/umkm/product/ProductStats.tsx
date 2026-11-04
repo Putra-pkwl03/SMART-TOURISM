@@ -66,7 +66,7 @@ export default function ProductStats({
                         <div>
                             <p className="text-xs font-medium text-gray-400">{stat.title}</p>
                             <div className="flex items-baseline gap-2 mt-1">
-                                <h3 className={`text-2xl font-black ${stat.textColor}`}>{stat.value}</h3>
+                                <h3 className={`text-base sm:text-lg font-black ${stat.textColor}`}>{stat.value}</h3>
                                 {stat.badge && (
                                     <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md ${stat.badgeColor}`}>
                                         {stat.badge}

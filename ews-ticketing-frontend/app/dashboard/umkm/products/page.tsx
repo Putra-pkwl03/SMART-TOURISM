@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import { Plus, Package } from 'lucide-react';
 import { apiClient } from '@/app/lib/axios';
 import { toast } from 'sonner';
-import ProductModal from '@/app/components/dashboard/umkm/ProductModal';
-import ProductStats from '@/app/components/dashboard/umkm/ProductStats';
-import ProductToolbar from '@/app/components/dashboard/umkm/ProductToolbar';
-import ProductTable from '@/app/components/dashboard/umkm/ProductTable';
+import ProductModal from '@/app/components/dashboard/umkm/product/ProductModal';
+import ProductStats from '@/app/components/dashboard/umkm/product/ProductStats';
+import ProductToolbar from '@/app/components/dashboard/umkm/product/ProductToolbar';
+import ProductTable from '@/app/components/dashboard/umkm/product/ProductTable';
 
 export default function UmkmProductsPage() {
     const [products, setProducts] = useState<any[]>([]);

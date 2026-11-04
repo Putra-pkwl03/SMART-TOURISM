@@ -1,16 +1,18 @@
+// app/components/dashboard/admin/consignment/ConsignmentTable.tsx
 'use client';
 
 import React, { useState } from 'react';
-import { Package, ChevronDown, ChevronUp, Calendar, User, Ticket, CreditCard, MapPin } from 'lucide-react';
+import { Package, ChevronDown, ChevronUp, Calendar, User, Ticket, CreditCard, MapPin, CheckCircle2, Clock } from 'lucide-react';
 import { getBackendUrl } from '@/app/lib/backend-url';
 
 interface ConsignmentTableProps {
     consignments: any[];
     loading: boolean;
     formatRupiah: (val: number) => string;
+    onMarkAsPaid?: (ids: number[]) => void;
 }
 
-export default function ConsignmentTable({ consignments, loading, formatRupiah }: ConsignmentTableProps) {
+export default function ConsignmentTable({ consignments, loading, formatRupiah, onMarkAsPaid }: ConsignmentTableProps) {
     const [expandedRowId, setExpandedRowId] = useState<number | null>(null);
     const BACKEND_URL = getBackendUrl();
 
@@ -52,6 +54,7 @@ export default function ConsignmentTable({ consignments, loading, formatRupiah }
                             <th className="py-3 px-4 text-center">Jumlah (Qty)</th>
                             <th className="py-3 px-4">Hak UMKM</th>
                             <th className="py-3 px-4">Bagian Pokdarwis</th>
+                            <th className="py-3 px-4 text-center">Status EOM</th>
                             <th className="py-3 px-4 text-right">Aksi</th>
                         </tr>
                     </thead>
@@ -59,25 +62,21 @@ export default function ConsignmentTable({ consignments, loading, formatRupiah }
                         {consignments.map((item) => {
                             const isExpanded = expandedRowId === item.id;
                             const productImg = item.umkm_product?.images?.[0]?.image_path;
-                            
-                            // PERBAIKAN: Menggunakan image_url sesuai dengan struktur database/seeder DestinationImage
                             const destinationImg = item.ticket?.destination?.images?.[0]?.image_url;
                             const destinationName = item.ticket?.destination?.name || 'Destinasi Wisata';
 
-                            // Kalkulasi harga tiket / paket per orang dan total
                             const totalBundlingValue = Number(item.total_umkm_income) + Number(item.total_pokdarwis_income);
                             const visitorCount = item.ticket?.visitor_count || 1;
                             const pricePerPerson = totalBundlingValue / visitorCount;
+                            const isPaid = item.status === 'paid';
 
                             return (
                                 <React.Fragment key={item.id}>
                                     <tr 
-                                        onClick={() => toggleRow(item.id)}
                                         className={`transition cursor-pointer ${isExpanded ? 'bg-emerald-50/40' : 'hover:bg-slate-50/50'}`}
                                     >
-                                        <td className="py-3.5 px-4">
+                                        <td className="py-3.5 px-4" onClick={() => toggleRow(item.id)}>
                                             <div className="flex items-center gap-3">
-                                                {/* Gambar Destinasi */}
                                                 <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center overflow-hidden shrink-0 border border-slate-200 shadow-xs">
                                                     {destinationImg ? (
                                                         <img src={`${BACKEND_URL}${destinationImg}`} alt="" className="w-full h-full object-cover" />
@@ -90,12 +89,12 @@ export default function ConsignmentTable({ consignments, loading, formatRupiah }
                                                         {item.ticket?.ticket_code || `#${item.ticket_id}`}
                                                     </span>
                                                     <span className="text-[11px] text-slate-500 block truncate max-w-[180px]">
-                                                        {destinationName} - {item.ticket?.user?.name || 'Wisatawan Umum'}
+                                                        {destinationName} • {item.ticket?.user?.name || 'Wisatawan Umum'}
                                                     </span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-3.5 px-4">
+                                        <td className="py-3.5 px-4" onClick={() => toggleRow(item.id)}>
                                             <div className="flex items-center gap-2.5">
                                                 <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center overflow-hidden shrink-0 border border-slate-200">
                                                     {productImg ? (
@@ -109,29 +108,62 @@ export default function ConsignmentTable({ consignments, loading, formatRupiah }
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="py-3.5 px-4 text-center">
+                                        <td className="py-3.5 px-4 text-center" onClick={() => toggleRow(item.id)}>
                                             <span className="bg-emerald-50 text-emerald-700 py-1 px-2.5 rounded-xl font-bold">
                                                 {item.qty} Pcs
                                             </span>
                                         </td>
-                                        <td className="py-3.5 px-4 font-bold text-emerald-600">
+                                        <td className="py-3.5 px-4 font-bold text-emerald-600" onClick={() => toggleRow(item.id)}>
                                             {formatRupiah(item.total_umkm_income)}
                                         </td>
-                                        <td className="py-3.5 px-4 font-bold text-blue-600">
+                                        <td className="py-3.5 px-4 font-bold text-blue-600" onClick={() => toggleRow(item.id)}>
                                             {formatRupiah(item.total_pokdarwis_income)}
                                         </td>
+                                        
+                                        {/* Kolom Status EOM (Paid / Pending) */}
+                                        <td className="py-3.5 px-4 text-center" onClick={() => toggleRow(item.id)}>
+                                            {isPaid ? (
+                                                <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-[10px] font-extrabold">
+                                                    <CheckCircle2 className="w-3 h-3" /> Lunas
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-[10px] font-extrabold">
+                                                    <Clock className="w-3 h-3" /> Pending
+                                                </span>
+                                            )}
+                                        </td>
+
                                         <td className="py-3.5 px-4 text-right">
-                                            <button className="text-slate-400 hover:text-slate-600 inline-flex items-center gap-1 font-semibold text-[11px]">
-                                                {isExpanded ? 'Tutup' : 'Detail'}
-                                                {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                                            </button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                {/* Kolom Aksi di ConsignmentTable.tsx */}
+                                                    {!isPaid && onMarkAsPaid && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                // Panggil prop handler untuk mencairkan ID ini
+                                                                onMarkAsPaid([item.id]); 
+                                                            }}
+                                                            title="Cairkan Dana Ini"
+                                                            className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition cursor-pointer"
+                                                        >
+                                                            <CheckCircle2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                <button 
+                                                    onClick={() => toggleRow(item.id)}
+                                                    className="text-slate-400 hover:text-slate-600 inline-flex items-center gap-1 font-semibold text-[11px]"
+                                                >
+                                                    {isExpanded ? 'Tutup' : 'Detail'}
+                                                    {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
 
                                     {/* Baris Detail Expandable */}
                                     {isExpanded && (
                                         <tr className="bg-slate-50/80 border-b border-slate-200">
-                                            <td colSpan={6} className="p-5">
+                                            <td colSpan={7} className="p-5">
                                                 <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
                                                     <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                                                         <h4 className="font-extrabold text-slate-900 text-xs flex items-center gap-2">
@@ -140,6 +172,7 @@ export default function ConsignmentTable({ consignments, loading, formatRupiah }
                                                         </h4>
                                                         <span className="text-[11px] text-slate-400">
                                                             Dicatat pada: {item.created_at ? new Date(item.created_at).toLocaleString('id-ID') : '-'}
+                                                            {item.settled_at && ` • Dicairkan: ${new Date(item.settled_at).toLocaleString('id-ID')}`}
                                                         </span>
                                                     </div>
 
@@ -171,6 +204,7 @@ export default function ConsignmentTable({ consignments, loading, formatRupiah }
                                                             <p className="font-bold text-slate-800">{item.umkm_product?.name}</p>
                                                             <p className="text-slate-600">Harga Satuan Jual: <strong>{formatRupiah(item.umkm_product?.price || 0)}</strong></p>
                                                             <p className="text-emerald-600">Hak UMKM Per Pcs: <strong>{formatRupiah(item.umkm_product?.umkm_share_amount || 0)}</strong></p>
+                                                            {item.notes && <p className="text-slate-500 text-[11px] pt-1">Catatan: {item.notes}</p>}
                                                         </div>
 
                                                         {/* Kalkulasi Finansial Bagi Hasil */}
