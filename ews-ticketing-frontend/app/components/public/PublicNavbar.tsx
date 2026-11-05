@@ -93,10 +93,13 @@ function NavbarContent() {
 
     // 3. Fungsi Konfirmasi & Eksekusi Logout
     const handleConfirmLogout = async () => {
+        let logoutFailed = false;
+
         try {
             setLoggingOut(true);
-            await apiClient.post('/auth/logout').catch(() => {});
+            await apiClient.post('/logout');
         } catch (error) {
+            logoutFailed = true;
             console.error('Logout error:', error);
         } finally {
             localStorage.removeItem('token');
@@ -110,7 +113,11 @@ function NavbarContent() {
             setIsLogoutModalOpen(false);
             setLoggingOut(false);
             setIsDropdownOpen(false);
-            toast.success('Berhasil keluar dari akun.');
+            if (logoutFailed) {
+                toast.error('Sesi di perangkat ini diakhiri, tetapi server gagal membatalkan token.');
+            } else {
+                toast.success('Berhasil keluar dari akun.');
+            }
             router.push('/');
         }
     };

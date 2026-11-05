@@ -23,7 +23,7 @@ export default function SalesTable({ sales, loading }: SalesTableProps) {
 
     if (loading) {
         return (
-            <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center text-slate-400 text-xs font-medium">
+            <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center text-slate-400 text-sm font-medium">
                 Memuat data penjualan & hampers...
             </div>
         );
@@ -31,7 +31,7 @@ export default function SalesTable({ sales, loading }: SalesTableProps) {
 
     if (sales.length === 0) {
         return (
-            <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center text-slate-400 text-xs font-medium flex flex-col items-center justify-center gap-3">
+            <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center text-slate-400 text-sm font-medium flex flex-col items-center justify-center gap-3">
                 <ShoppingCart className="w-10 h-10 text-slate-300" />
                 <span>Belum ada riwayat transaksi penjualan produk atau hampers tercatat.</span>
             </div>
@@ -43,7 +43,7 @@ export default function SalesTable({ sales, loading }: SalesTableProps) {
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="border-b border-slate-100 bg-slate-50/50 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                        <tr className="border-b border-slate-100 bg-slate-50/50 text-xs font-bold text-slate-400 uppercase tracking-wider">
                             <th className="py-4 px-6">ID Transaksi / Tanggal</th>
                             <th className="py-4 px-6">Produk & Qty</th>
                             <th className="py-4 px-6">Jenis Penjualan</th>
@@ -52,7 +52,7 @@ export default function SalesTable({ sales, loading }: SalesTableProps) {
                             <th className="py-4 px-6 text-center">Aksi / Detail</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                    <tbody className="divide-y divide-slate-100 text-sm font-medium text-slate-700">
                         {sales.map((item) => {
                             const product = item.umkm_product;
                             const ticket = item.ticket;
@@ -74,7 +74,7 @@ export default function SalesTable({ sales, loading }: SalesTableProps) {
                                                 <ReceiptText className="w-4 h-4 text-emerald-600" />
                                                 <span>{ticket?.ticket_code || `TRX-#${item.id}`}</span>
                                             </div>
-                                            <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1 font-semibold">
+                                            <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1 font-semibold">
                                                 <Calendar className="w-3 h-3" />
                                                 <span>{new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                                             </div>
@@ -90,12 +90,12 @@ export default function SalesTable({ sales, loading }: SalesTableProps) {
                                                 </div>
                                                 <div>
                                                     <div className="font-bold text-slate-900">{product?.name || 'Produk UMKM'}</div>
-                                                    <div className="text-[11px] text-slate-500 font-semibold">Jumlah: <span className="font-bold text-slate-700">{item.qty} Pcs</span></div>
+                                                    <div className="text-xs text-slate-500 font-semibold">Jumlah: <span className="font-bold text-slate-700">{item.qty} Pcs</span></div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="py-4 px-6">
-                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold ${
+                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-bold ${
                                                 isStandalone 
                                                     ? 'bg-purple-50 text-purple-700 border border-purple-200' 
                                                     : 'bg-blue-50 text-blue-700 border border-blue-200'
@@ -112,7 +112,7 @@ export default function SalesTable({ sales, loading }: SalesTableProps) {
                                         <td className="py-4 px-6 text-center">
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); toggleRow(item.id); }}
-                                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-emerald-100 hover:text-emerald-700 text-slate-600 transition font-bold text-[11px]"
+                                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-emerald-100 hover:text-emerald-700 text-slate-600 transition font-bold text-xs"
                                             >
                                                 <Eye className="w-3.5 h-3.5" />
                                                 <span>{isExpanded ? 'Tutup' : 'Detail'}</span>
@@ -131,32 +131,32 @@ export default function SalesTable({ sales, loading }: SalesTableProps) {
                                                             <ReceiptText className="w-4 h-4 text-emerald-600" />
                                                             Rincian Transaksi & Konsinyasi #{ticket?.ticket_code || item.id}
                                                         </h4>
-                                                        <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                                             Status: Tercatat EOM (End of Month)
                                                         </span>
                                                     </div>
 
                                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                                                         <div className="space-y-1 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
-                                                            <span className="text-slate-400 font-bold uppercase text-[10px]">Informasi Pemesan / Wisatawan</span>
+                                                            <span className="text-slate-400 font-bold uppercase text-xs">Informasi Pemesan / Wisatawan</span>
                                                             <div className="font-bold text-slate-800 flex items-center gap-1.5 pt-1">
                                                                 <User className="w-3.5 h-3.5 text-slate-500" />
                                                                 {ticket?.user?.name || 'Pembeli Umum / Walk-in'}
                                                             </div>
-                                                            <div className="text-slate-500 text-[11px]">{ticket?.user?.email || '-'}</div>
+                                                            <div className="text-slate-500 text-xs">{ticket?.user?.email || '-'}</div>
                                                         </div>
 
                                                         <div className="space-y-1 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
-                                                            <span className="text-slate-400 font-bold uppercase text-[10px]">Destinasi & Tiket Bundling</span>
+                                                            <span className="text-slate-400 font-bold uppercase text-xs">Destinasi & Tiket Bundling</span>
                                                             <div className="font-bold text-slate-800 flex items-center gap-1.5 pt-1">
                                                                 <MapPin className="w-3.5 h-3.5 text-slate-500" />
                                                                 {ticket?.destination?.name || 'Pembelian Standalone Toko Oleh-Oleh'}
                                                             </div>
-                                                            <div className="text-slate-500 text-[11px]">Jumlah Pengunjung: {ticket?.visitor_count || 1} Orang</div>
+                                                            <div className="text-slate-500 text-xs">Jumlah Pengunjung: {ticket?.visitor_count || 1} Orang</div>
                                                         </div>
 
                                                         <div className="space-y-1 bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-100">
-                                                            <span className="text-emerald-600 font-bold uppercase text-[10px]">Kalkulasi Bagi Hasil</span>
+                                                            <span className="text-emerald-600 font-bold uppercase text-xs">Kalkulasi Bagi Hasil</span>
                                                             <div className="flex justify-between text-slate-600 pt-1">
                                                                 <span>Bagian Pokdarwis:</span>
                                                                 <span className="font-bold text-slate-800">{formatRupiah(item.total_pokdarwis_income)}</span>

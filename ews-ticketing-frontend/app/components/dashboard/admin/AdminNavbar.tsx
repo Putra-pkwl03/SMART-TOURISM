@@ -43,11 +43,11 @@ export default function AdminNavbar({ setSidebarOpen }: AdminNavbarProps) {
     }, []);
 
     return (
-        <header className={`h-16 px-6 flex items-center justify-between flex-shrink-0 z-30 transition-all duration-300 bg-transparent ${
+        <header className={`h-16 px-3 sm:px-6 flex items-center justify-between gap-2 flex-shrink-0 z-30 transition-all duration-300 bg-transparent ${
             isScrolled ? 'border-b border-slate-200 shadow-sm' : 'border-b border-transparent'
         }`}>
             {/* Sisi Kiri: Tombol Hamburger & Judul Sistem */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
                 <button
                     onClick={() => setSidebarOpen(true)}
                     className="lg:hidden p-2 rounded-xl bg-white/80 backdrop-blur-sm text-slate-700 hover:bg-white transition shadow-sm"
@@ -55,14 +55,14 @@ export default function AdminNavbar({ setSidebarOpen }: AdminNavbarProps) {
                 >
                     <Menu className="w-5 h-5" />
                 </button>
-                <div>
-                    <h2 className="text-sm font-bold text-slate-900 tracking-wide drop-shadow-sm">SMART TOURISM POKDARWIS</h2>
+                <div className="min-w-0">
+                    <h2 className="text-[11px] sm:text-sm font-bold text-slate-900 tracking-wide drop-shadow-sm truncate">SMART TOURISM POKDARWIS</h2>
                     <p className="text-[11px] text-slate-600 hidden sm:block font-medium">Desa Wisata Jurug Gedhe & Mitigasi EWS</p>
                 </div>
             </div>
 
             {/* Sisi Kanan: Status Indikator, Notifikasi, & Profil Username */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                 {/* Indikator EWS */}
                 <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-sm border border-emerald-200 rounded-full text-xs font-medium text-emerald-700 shadow-sm">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -71,7 +71,7 @@ export default function AdminNavbar({ setSidebarOpen }: AdminNavbarProps) {
 
                 {/* Tombol Notifikasi */}
                 <button 
-                    className="p-2.5 rounded-xl bg-white/80 backdrop-blur-sm text-slate-600 hover:bg-white transition relative shadow-sm"
+                    className="p-2 sm:p-2.5 rounded-xl bg-white/80 backdrop-blur-sm text-slate-600 hover:bg-white transition relative shadow-sm"
                     aria-label="Notifikasi Sistem"
                 >
                     <Bell className="w-4 h-4" />
@@ -83,7 +83,7 @@ export default function AdminNavbar({ setSidebarOpen }: AdminNavbarProps) {
 
                 {/* Profil Pengguna (Username & Avatar dengan Indikator Loading) */}
                 <div className="flex items-center gap-2.5 pl-1">
-                    <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-md">
+                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-xs shadow-md">
                         {loading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (

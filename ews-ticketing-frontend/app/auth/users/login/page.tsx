@@ -33,6 +33,7 @@ export default function UserAuthPage() {
                 // Simpan ke LocalStorage
                 localStorage.setItem('token', access_token);
                 localStorage.setItem('user', JSON.stringify(user));
+                localStorage.setItem('user_role', user.role);
 
                 // Simpan ke Cookie agar Middleware Next.js dapat membacanya
                 document.cookie = `auth_token=${access_token}; path=/; max-age=86400; SameSite=Lax`;
@@ -40,11 +41,19 @@ export default function UserAuthPage() {
 
                 toast.success(`Selamat datang kembali, ${user.name}!`);
                 
-                // Jika role visitor, lempar ke beranda atau riwayat tiket. Jika role lain sesuaikan.
-                if (user.role === 'visitor') {
-                    router.push('/');
-                } else {
-                    router.push('/dashboard/admin');
+                switch (user.role) {
+                    case 'admin':
+                        router.push('/dashboard/admin');
+                        break;
+                    case 'ticketing_officer':
+                        router.push('/dashboard/loket');
+                        break;
+                    case 'umkm_mitra':
+                        router.push('/dashboard/umkm');
+                        break;
+                    default:
+                        router.push('/');
+                        break;
                 }
             } else {
                 // Proses Registrasi (Pastikan endpoint /auth/register tersedia di Laravel)

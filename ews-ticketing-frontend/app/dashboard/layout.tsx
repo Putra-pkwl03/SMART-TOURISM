@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Toaster } from 'sonner';
 import AdminSidebar from '@/app/components/dashboard/admin/AdminSidebar';
 import AdminNavbar from '@/app/components/dashboard/admin/AdminNavbar';
 
@@ -13,15 +12,12 @@ export default function AdminLayout({
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
-        <div className="flex h-screen bg-slate-50 overflow-hidden">
-            {/* Komponen Toast Notifikasi */}
-            <Toaster position="top-right" richColors closeButton />
-
+        <div className="flex h-dvh min-h-0 bg-slate-50 overflow-hidden">
             {/* Sidebar di Kiri */}
             <AdminSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
             {/* Area Kanan (Navbar + Konten Utama) */}
-            <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
+            <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden relative">
                 
                 {/* 1. Header Hero Background dengan Gradasi Kiri & Merambat ke Kanan */}
                 <div 
@@ -41,7 +37,7 @@ export default function AdminLayout({
                 </div>
 
                 {/* 3. Konten Utama Halaman dengan Custom Scrollbar */}
-                <main className="flex-1 overflow-y-auto p-4 lg:p-8 relative z-10 scrollbar-thin scrollbar-thumb-emerald-700/40 scrollbar-track-transparent [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-emerald-500/40 hover:[&::-webkit-scrollbar-thumb]:bg-emerald-600/60 transition-all">
+                <main className="min-w-0 min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-4 lg:p-8 relative z-10 scrollbar-thin scrollbar-thumb-emerald-700/40 scrollbar-track-transparent [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-emerald-500/40 hover:[&::-webkit-scrollbar-thumb]:bg-emerald-600/60 transition-all">
                     {children}
                 </main>
             </div>

@@ -1,51 +1,91 @@
-export default function RecentTicketsTable() {
-    const dummyTickets = [
-        { code: 'JT-261028-001', visitor: 'Budi Santoso', count: 2, total: 'Rp 70.000', status: 'valid', date: '28 Okt 2026' },
-        { code: 'JT-261028-002', visitor: 'Siti Rahma', count: 4, total: 'Rp 140.000', status: 'used', date: '28 Okt 2026' },
-        { code: 'JT-261027-003', visitor: 'Ahmad Fauzi', count: 1, total: 'Rp 35.000', status: 'valid', date: '27 Okt 2026' },
-    ];
+import Link from 'next/link';
+import { Ticket } from 'lucide-react';
+import type { RecentDashboardTicket } from '@/app/lib/admin-dashboard';
 
+interface RecentTicketsTableProps {
+    tickets: RecentDashboardTicket[];
+    loading: boolean;
+}
+
+const formatRupiah = (value: number) =>
+    `Rp ${new Intl.NumberFormat('id-ID').format(value)}`;
+
+const statusStyles: Record<string, string> = {
+    valid: 'bg-emerald-50 text-emerald-700',
+    used: 'bg-blue-50 text-blue-700',
+    expired: 'bg-slate-100 text-slate-600',
+    pending: 'bg-amber-50 text-amber-700',
+    cancelled: 'bg-rose-50 text-rose-700',
+};
+
+const statusLabels: Record<string, string> = {
+    valid: 'Valid',
+    used: 'Digunakan',
+    expired: 'Kedaluwarsa',
+    pending: 'Menunggu',
+    cancelled: 'Dibatalkan',
+};
+
+export default function RecentTicketsTable({ tickets, loading }: RecentTicketsTableProps) {
     return (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+        <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 p-4 sm:px-5">
                 <div>
-                    <h3 className="font-bold text-slate-900">Pemesanan E-Ticketing Terbaru</h3>
-                    <p className="text-xs text-slate-500">Daftar transaksi karcis masuk kawasan Jurug Gedhe</p>
+                    <h3 className="flex items-center gap-2 text-sm font-bold text-slate-900">
+                        <Ticket className="h-4 w-4 text-emerald-600" />
+                        Pemesanan E-Ticketing Terbaru
+                    </h3>
+                    <p className="mt-1 text-[11px] text-slate-500">Transaksi tiket wisata terbaru</p>
                 </div>
-                <button className="text-xs font-semibold text-blue-600 hover:underline">Lihat Semua</button>
+                <Link href="/dashboard/admin/tickets" className="shrink-0 text-[11px] font-semibold text-blue-600 hover:underline">
+                    Lihat Semua →
+                </Link>
             </div>
-            <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                    <thead>
-                        <tr className="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider border-b border-slate-100">
-                            <th className="p-4">Kode Tiket</th>
-                            <th className="p-4">Nama Wisatawan</th>
-                            <th className="p-4">Jumlah</th>
-                            <th className="p-4">Total Harga</th>
-                            <th className="p-4">Status</th>
-                            <th className="p-4">Tanggal</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                        {dummyTickets.map((ticket, idx) => (
-                            <tr key={idx} className="hover:bg-slate-50/50 transition">
-                                <td className="p-4 font-mono font-bold text-slate-900">{ticket.code}</td>
-                                <td className="p-4 font-medium">{ticket.visitor}</td>
-                                <td className="p-4">{ticket.count} Orang</td>
-                                <td className="p-4 font-semibold">{ticket.total}</td>
-                                <td className="p-4">
-                                    <span className={`px-2.5 py-1 rounded-full font-medium text-[10px] uppercase ${
-                                        ticket.status === 'valid' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600'
-                                    }`}>
-                                        {ticket.status}
-                                    </span>
-                                </td>
-                                <td className="p-4 text-slate-400">{ticket.date}</td>
+
+            {loading ? (
+                <div className="p-8 text-center text-xs text-slate-400">Memuat transaksi tiket...</div>
+            ) : tickets.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-400">Belum ada transaksi tiket.</div>
+            ) : (
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[680px] text-left text-xs">
+                        <thead>
+                            <tr className="border-b border-slate-100 bg-slate-50 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                                <th className="px-4 py-3">Kode Tiket</th>
+                                <th className="px-4 py-3">Wisatawan</th>
+                                <th className="px-4 py-3">Jumlah</th>
+                                <th className="px-4 py-3">Total Harga</th>
+                                <th className="px-4 py-3">Status</th>
+                                <th className="px-4 py-3">Tanggal</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-slate-700">
+                            {tickets.map((ticket) => (
+                                <tr key={ticket.id} className="transition hover:bg-slate-50/70">
+                                    <td className="whitespace-nowrap px-4 py-3 font-mono font-bold text-slate-900">{ticket.code}</td>
+                                    <td className="px-4 py-3 font-medium">{ticket.visitor}</td>
+                                    <td className="whitespace-nowrap px-4 py-3">{ticket.count} Orang</td>
+                                    <td className="whitespace-nowrap px-4 py-3 font-semibold">{formatRupiah(ticket.total)}</td>
+                                    <td className="px-4 py-3">
+                                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase ${statusStyles[ticket.status] ?? statusStyles.pending}`}>
+                                            {statusLabels[ticket.status] ?? ticket.status}
+                                        </span>
+                                    </td>
+                                    <td className="whitespace-nowrap px-4 py-3 text-slate-500">
+                                        {new Intl.DateTimeFormat('id-ID', {
+                                            day: '2-digit',
+                                            month: 'short',
+                                            year: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                        }).format(new Date(ticket.created_at))}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </section>
     );
 }

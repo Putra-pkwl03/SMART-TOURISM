@@ -1,23 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { QrCode, Camera, Search, CheckCircle2, AlertTriangle, X, Loader2 } from 'lucide-react';
+import { Camera, CheckCircle2, Loader2, QrCode, Search, ShieldCheck, X, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
-import CameraScannerModal from './CameraScannerModal';
+import InlineScanner from './sceener/InlineScanner';
 import { getApiUrl } from '@/app/lib/backend-url';
 
-export default function TicketVerifier() {
-    const router = useRouter();
+interface TicketVerifierProps {
+    onVerified?: () => void;
+}
+
+export default function TicketVerifier({ onVerified }: TicketVerifierProps) {
     const [ticketCode, setTicketCode] = useState<string>('');
-    const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
+    const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [scanResult, setScanResult] = useState<{ 
         success: boolean; 
         message: string; 
         name?: string; 
         details?: string;
-        data?: any;
     } | null>(null);
 
     // Fungsi utama untuk memanggil API verifikasi backend Laravel
@@ -49,9 +50,9 @@ export default function TicketVerifier() {
                     message: result.message || 'Tiket sah! Silakan izinkan pengunjung masuk.',
                     name: `Destinasi: ${ticketData.destination?.name || 'Wisata'}`,
                     details: `Kode: ${ticketData.ticket_code} — Kunjungan: ${ticketData.visit_date} (${ticketData.visitor_count} Orang)`,
-                    data: ticketData
                 });
                 toast.success('Tiket berhasil diverifikasi!');
+                onVerified?.();
             } else {
                 setScanResult({
                     success: false,
@@ -79,53 +80,101 @@ export default function TicketVerifier() {
     };
 
     return (
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+        <section className="flex h-full flex-col justify-between rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
             <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                        <QrCode className="w-5 h-5 text-blue-600" />
-                        <h2 className="text-lg font-bold text-slate-900">Verifikasi Tiket Masuk</h2>
+                        <QrCode className="h-5 w-5 text-emerald-700" />
+                        <h2 className="text-sm font-extrabold text-slate-900 sm:text-base">Verifikasi Tiket Masuk</h2>
                     </div>
                     <button 
                         type="button"
-                        onClick={() => setIsCameraOpen(true)}
-                        className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-semibold rounded-lg border border-blue-200 transition flex items-center gap-1.5 cursor-pointer"
+                        onClick={() => setIsScannerOpen((open) => !open)}
+                        className="inline-flex h-8 w-40 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3 text-[10px] font-semibold text-emerald-800 transition hover:bg-emerald-100"
                     >
-                        <Camera className="w-3.5 h-3.5" />
-                        <span>Buka Kamera Scanner</span>
+                        <Camera className="h-3.5 w-3.5" />
+                        <span>{isScannerOpen ? 'Tutup Kamera' : 'Buka Kamera Scanner'}</span>
                     </button>
                 </div>
 
-                <p className="text-xs text-slate-500 mb-6">
-                    Ketik kode unik e-pass pengunjung (contoh: <code className="text-blue-600 font-semibold">JT-261028-YXEI</code>) atau scan langsung menggunakan kamera.
+                <p className="mb-4 text-[11px] text-slate-500">
+                    Scan kode QR atau masukkan kode e-pass untuk memvalidasi tiket pengunjung.
                 </p>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="relative">
-                        <input 
-                            type="text" 
-                            value={ticketCode}
-                            onChange={(e) => setTicketCode(e.target.value)}
-                            placeholder="Masukkan Kode Tiket (Cth: JT-261028-YXEI)"
-                            className="w-full pl-11 pr-32 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 uppercase tracking-wider transition font-medium"
-                        />
-                        <Search className="w-5 h-5 text-slate-400 absolute left-4 top-4" />
-                        <button 
-                            type="submit"
-                            disabled={isLoading}
-                            className="absolute right-2 top-2 bottom-2 px-5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
-                        >
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                    <span>Memeriksa...</span>
-                                </>
-                            ) : (
-                                <span>Verifikasi</span>
-                            )}
-                        </button>
+                <div className="grid items-stretch gap-4 md:grid-cols-[1.15fr_0.85fr]">
+                    <div className="relative h-56 min-w-0 overflow-hidden rounded-xl md:h-64">
+                        {isScannerOpen ? (
+                            <InlineScanner
+                                onScanSuccess={(ticketData) => {
+                                    setTicketCode(ticketData.ticket_code || '');
+                                    setScanResult({
+                                        success: true,
+                                        message: 'Tiket sah! Silakan izinkan pengunjung masuk.',
+                                        name: `Destinasi: ${ticketData.destination?.name || 'Wisata'}`,
+                                        details: `Kode: ${ticketData.ticket_code} — Kunjungan: ${ticketData.visit_date} (${ticketData.visitor_count} Orang)`,
+                                    });
+                                    onVerified?.();
+                                }}
+                            />
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => setIsScannerOpen(true)}
+                                className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-blue-200 bg-slate-50/80 px-4 py-5 text-center text-xs text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50/40"
+                            >
+                                <Camera className="h-8 w-8 text-slate-500" />
+                                <span className="font-semibold">Klik untuk membuka kamera</span>
+                                <span className="text-[10px] text-slate-400">atau gunakan input kode e-pass</span>
+                            </button>
+                        )}
+                        {isScannerOpen && (
+                            <button
+                                type="button"
+                                onClick={() => setIsScannerOpen(false)}
+                                className="absolute right-3 top-3 inline-flex cursor-pointer items-center gap-1 rounded-lg bg-slate-950/75 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-950"
+                            >
+                                <X className="h-3.5 w-3.5" />
+                                Tutup kamera
+                            </button>
+                        )}
                     </div>
-                </form>
+
+                    <div className="flex min-w-0 flex-col justify-center rounded-xl border border-slate-100 bg-slate-50/70 p-4 sm:p-5">
+                        <div className="mb-3 flex items-center gap-2 text-xs font-bold text-slate-700">
+                            <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                            Validasi dengan kode tiket
+                        </div>
+                        <p className="mb-4 text-[11px] leading-relaxed text-slate-500">
+                            Masukkan kode e-pass yang tertera pada tiket jika tidak menggunakan kamera.
+                        </p>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={ticketCode}
+                                    onChange={(e) => setTicketCode(e.target.value)}
+                                    placeholder="Contoh: JT-261104-Z0ZO"
+                                    className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-24 text-[11px] font-bold uppercase tracking-wider text-slate-900 outline-none transition placeholder:font-medium placeholder:normal-case placeholder:tracking-normal focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                                />
+                                <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="absolute bottom-1.5 right-1.5 top-1.5 flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-emerald-700 px-3 text-[10px] font-bold text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-50"
+                                >
+                                    {isLoading ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            <span>Memeriksa...</span>
+                                        </>
+                                    ) : (
+                                        <span>Verifikasi</span>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
 
                 {/* Hasil Validasi dari Backend */}
                 {scanResult && (
@@ -153,27 +202,11 @@ export default function TicketVerifier() {
                 )}
             </div>
 
-            <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                <span>Pastikan status e-pass bertuliskan "Disetujui / Siap Digunakan".</span>
-                <span className="text-blue-600 font-medium cursor-pointer hover:underline" onClick={() => { setTicketCode(''); setScanResult(null); }}>Reset</span>
+            <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-3 text-[10px] text-slate-400">
+                <span>Tiket harus berstatus disetujui / siap digunakan.</span>
+                <button type="button" className="font-medium text-emerald-700 hover:underline" onClick={() => { setTicketCode(''); setScanResult(null); }}>Reset</button>
             </div>
 
-            {/* Modal Kamera Scanner yang Terhubung Langsung ke Backend */}
-            <CameraScannerModal 
-                isOpen={isCameraOpen}
-                onClose={() => setIsCameraOpen(false)}
-                onScanSuccess={(ticketData) => {
-                    // Ketika kamera sukses memverifikasi lewat API, tampilkan hasilnya di card verifier
-                    setTicketCode(ticketData.ticket_code || '');
-                    setScanResult({
-                        success: true,
-                        message: 'Tiket sah! Silakan izinkan pengunjung masuk.',
-                        name: `Destinasi: ${ticketData.destination?.name || 'Wisata'}`,
-                        details: `Kode: ${ticketData.ticket_code} — Kunjungan: ${ticketData.visit_date} (${ticketData.visitor_count} Orang)`,
-                        data: ticketData
-                    });
-                }}
-            />
-        </div>
+        </section>
     );
 }

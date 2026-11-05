@@ -1,6 +1,6 @@
 'use client';
 
-import { Clock } from 'lucide-react';
+import { Clock, ShieldCheck } from 'lucide-react';
 
 interface LoketHeaderProps {
     currentTime: string;
@@ -8,24 +8,15 @@ interface LoketHeaderProps {
 
 export default function LoketHeader({ currentTime }: LoketHeaderProps) {
     return (
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white border border-slate-200 p-6 rounded-3xl shadow-sm">
-            <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold mb-2 border border-emerald-200">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    Loket Operasional: Gerbang Utama Jurug Gedhe
-                </div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard Petugas Loket</h1>
-                <p className="text-sm text-slate-500 mt-1">
-                    Validasi karcis e-ticket pengunjung dan pantau peringatan bahaya cuaca / EWS sungai secara langsung.
-                </p>
-            </div>
+        <div className="flex flex-col gap-4 px-1 py-2 sm:flex-row sm:items-end sm:justify-between">
+            
 
-            <div className="flex items-center gap-3 bg-slate-50 px-4 py-3 rounded-2xl border border-slate-200">
-                <Clock className="w-5 h-5 text-blue-600" />
-                <div>
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Waktu Real-time</p>
-                    <p className="text-sm font-mono font-bold text-slate-800">{currentTime || '--:--:--'}</p>
-                </div>
+            <div className="flex items-center gap-2 self-start rounded-full border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 sm:self-auto">
+                <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                <span>Petugas Loket</span>
+                <span className="mx-1 h-4 w-px bg-emerald-200" />
+                <Clock className="h-3.5 w-3.5 text-emerald-600" />
+                <span className="font-mono">{currentTime || '--:--:--'}</span>
             </div>
         </div>
     );

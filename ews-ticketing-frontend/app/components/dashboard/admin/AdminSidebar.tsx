@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/app/lib/axios';
 import LogoutModal from './LogoutModal';
+import { toast } from 'sonner';
 
 interface AdminSidebarProps {
     isOpen: boolean;
@@ -35,32 +36,44 @@ export default function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
 
     // Mendapatkan role user yang sedang login (Sinkron dengan Cookie & LocalStorage)
     useEffect(() => {
-        const getCookie = (name: string) => {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop()?.split(';').shift();
-            return null;
-        };
+        const timeoutId = window.setTimeout(() => {
+            const getCookie = (name: string) => {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop()?.split(';').shift();
+                return null;
+            };
 
-        const roleFromCookie = getCookie('user_role');
-        const roleFromStorage = localStorage.getItem('user_role');
-         
-        const activeRole = roleFromCookie || roleFromStorage || 'admin';
-        setUserRole(activeRole);
-    }, []);
+            const roleFromCookie = getCookie('user_role');
+            const roleFromStorage = localStorage.getItem('user_role');
+            setUserRole(roleFromCookie || roleFromStorage || 'admin');
+        }, 0);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [pathname]);
 
     const executeLogout = async () => {
         setLoadingLogout(true);
+        let logoutFailed = false;
+
         try {
             await apiClient.post('/logout');
-        } catch (e) {
-            // Abaikan error jaringan
+        } catch (error) {
+            logoutFailed = true;
+            console.error('Logout request failed:', error);
         } finally {
-            localStorage.clear();
+            localStorage.removeItem('token');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('user_role');
             document.cookie = 'auth_token=; path=/; max-age=0';
             document.cookie = 'user_role=; path=/; max-age=0';
-            router.push('/auth/login');
-            router.refresh();
+            setShowLogoutModal(false);
+            setLoadingLogout(false);
+            if (logoutFailed) {
+                toast.error('Sesi di perangkat ini diakhiri, tetapi server gagal membatalkan token.');
+            }
+            router.replace('/auth/login');
         }
     };
 
@@ -113,7 +126,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
             )}
 
             <aside className={`
-                fixed inset-y-0 left-0 z-50 w-64 text-slate-200 flex flex-col justify-between border-r border-emerald-950 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 bg-no-repeat relative overflow-hidden
+                fixed inset-y-0 left-0 z-50 w-[min(18rem,85vw)] text-slate-200 flex flex-col justify-between border-r border-emerald-950 transition-transform duration-300 ease-in-out lg:relative lg:inset-auto lg:z-auto lg:w-64 lg:flex-shrink-0 lg:translate-x-0 bg-no-repeat overflow-hidden
                 ${isOpen ? 'translate-x-0' : '-translate-x-full'}
             `}
             style={{ 
