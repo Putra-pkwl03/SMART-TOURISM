@@ -112,7 +112,7 @@ export default function WeatherEwsWidget({ ews }: { ews: LoketDashboardData['ews
             <div className={`mt-3 flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-[10px] font-semibold ${
                 ews ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-50 text-slate-600'
             }`}>
-                <span className="min-w-0 truncate">Status EWS: <span className={statusColor}>{statusLabel}</span></span>
+                <span className="min-w-0 truncate">Status EWS : <span className={statusColor}>{statusLabel}</span></span>
                 <button
                     type="button"
                     onClick={() => router.push('/dashboard/officer/ews')}
