@@ -7,6 +7,7 @@ use App\Models\Destination;
 use App\Models\EwsTelemetry;
 use App\Models\Ticket;
 use App\Models\TicketItem;
+use App\Models\UmkmOfflineSale;
 use App\Models\UmkmProduct;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -36,6 +37,16 @@ class AdminDashboardTest extends TestCase
             'umkm_share_amount' => 2500,
             'is_active' => true,
         ]);
+        $destination->umkmProducts()->attach($product);
+        $standaloneProduct = UmkmProduct::create([
+            'name' => 'Produk POS',
+            'slug' => 'produk-pos',
+            'price' => 15000,
+            'initial_stock' => 5,
+            'stock' => 5,
+            'umkm_share_amount' => 10000,
+            'is_active' => true,
+        ]);
         $ticket = Ticket::create([
             'ticket_code' => 'JT-TEST-001',
             'destination_id' => $destination->id,
@@ -61,6 +72,21 @@ class AdminDashboardTest extends TestCase
             'total_pokdarwis_income' => 7500,
             'status' => 'pending',
         ]);
+        $offlineSale = UmkmOfflineSale::create([
+            'cashier_id' => $admin->id,
+            'receipt_code' => 'POS-TEST-001',
+            'payment_method' => 'cash',
+            'total_amount' => 15000,
+        ]);
+        ConsignmentSettlement::create([
+            'offline_sale_id' => $offlineSale->id,
+            'umkm_product_id' => $standaloneProduct->id,
+            'qty' => 1,
+            'unit_price' => 15000,
+            'total_umkm_income' => 15000,
+            'total_pokdarwis_income' => 0,
+            'status' => 'pending',
+        ]);
         EwsTelemetry::create([
             'water_level' => 1.35,
             'rainfall' => 0,
@@ -82,7 +108,15 @@ class AdminDashboardTest extends TestCase
             ->assertJsonPath('summary.pending_consignments', 1)
             ->assertJsonPath('ews.status', 'NORMAL')
             ->assertJsonPath('recent_tickets.0.code', 'JT-TEST-001')
-            ->assertJsonPath('consignment_products.0.stock', 8);
+            ->assertJsonPath('consignment_products.0.stock', 8)
+            ->assertJsonCount(1, 'consignment_products');
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/admin/consignments')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('summary.overall_umkm_income', 2500)
+            ->assertJsonPath('summary.overall_pokdarwis_income', 7500);
     }
 
     public function test_dashboard_endpoint_rejects_non_admin_users(): void

@@ -11,8 +11,10 @@ class ConsignmentSettlement extends Model
 
     protected $fillable = [
         'ticket_id',
+        'offline_sale_id',
         'umkm_product_id',
         'qty',
+        'unit_price',
         'total_umkm_income',
         'total_pokdarwis_income',
         'status',
@@ -23,6 +25,11 @@ class ConsignmentSettlement extends Model
     public function ticket()
     {
         return $this->belongsTo(Ticket::class);
+    }
+
+    public function offlineSale()
+    {
+        return $this->belongsTo(UmkmOfflineSale::class, 'offline_sale_id');
     }
 
     public function umkmProduct()

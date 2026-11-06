@@ -16,6 +16,7 @@ import {
     QrCode as ScanIcon,
     Package,
     ShoppingBag,
+    ShoppingCart,
     DollarSign
 } from 'lucide-react';
 import { apiClient } from '@/app/lib/axios';
@@ -97,6 +98,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
     const umkmMenuItems = [
         { name: 'Dashboard UMKM', href: '/dashboard/umkm', icon: LayoutDashboard },
         { name: 'Produk dan Stok', href: '/dashboard/umkm/products', icon: Package },
+        { name: 'Kasir Offline', href: '/dashboard/umkm/cashier', icon: ShoppingCart },
         { name: 'Laporan Penjualan', href: '/dashboard/umkm/sales', icon: ShoppingBag },
     ];
 

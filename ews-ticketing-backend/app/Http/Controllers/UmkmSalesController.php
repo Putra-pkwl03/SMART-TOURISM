@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\ConsignmentSettlement;
+use App\Models\UmkmOfflineSale;
 use App\Models\UmkmProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class UmkmSalesController extends Controller
@@ -15,11 +18,17 @@ class UmkmSalesController extends Controller
      */
     public function index(Request $request)
     {
-        $userId = auth()->id();
+        if ($request->user()->role !== 'umkm_mitra') {
+            return response()->json(['message' => 'Akses hanya untuk mitra UMKM.'], 403);
+        }
+
+        $userId = $request->user()->umkm_id ?? $request->user()->id;
 
         $query = ConsignmentSettlement::with([
             'ticket.user',
             'ticket.destination',
+            'offlineSale.items.umkmProduct',
+            'offlineSale.cashier',
             'umkmProduct.images'
         ])->whereHas('umkmProduct', function ($q) use ($userId) {
             $q->where('umkm_id', $userId);
@@ -73,22 +82,26 @@ class UmkmSalesController extends Controller
 
         // Hitung Pendapatan Kotor Keseluruhan (Gross Sales) dengan benar
         $totalGrossSales = $settlements->sum(function ($item) {
-            return $item->qty * ($item->umkmProduct->price ?? 0);
+            return $item->qty * ($item->unit_price ?? $item->umkmProduct->price ?? 0);
         });
 
         // Pisahkan Omzet Pendapatan Standalone dan Bundling secara presisi
         $standaloneGrossSales = $settlements->whereNull('ticket_id')->sum(function ($item) {
-            return $item->qty * ($item->umkmProduct->price ?? 0);
+            return $item->qty * ($item->unit_price ?? $item->umkmProduct->price ?? 0);
         });
 
         $bundlingGrossSales = $settlements->whereNotNull('ticket_id')->sum(function ($item) {
-            return $item->qty * ($item->umkmProduct->price ?? 0);
+            return $item->qty * ($item->unit_price ?? $item->umkmProduct->price ?? 0);
         });
         
-        $totalUmkmIncome = $settlements->sum('total_umkm_income'); // Hak bersih UMKM
-        $totalPaidIncome = $settlements->where('status', 'paid')->sum('total_umkm_income');       // Sudah cair
-        $totalPendingIncome = $settlements->where('status', 'pending')->sum('total_umkm_income'); // Belum cair (EOM)
-        $totalPokdarwisShare = $settlements->sum('total_pokdarwis_income');
+        $standaloneIncome = $settlements->whereNull('ticket_id')->sum(function ($item) {
+            return $item->qty * ($item->unit_price ?? $item->umkmProduct->price ?? 0);
+        });
+        $bundlingSettlements = $settlements->whereNotNull('ticket_id');
+        $bundlingUmkmIncome = $bundlingSettlements->sum('total_umkm_income');
+        $totalPaidIncome = $bundlingSettlements->where('status', 'paid')->sum('total_umkm_income');
+        $totalPendingIncome = $bundlingSettlements->where('status', 'pending')->sum('total_umkm_income');
+        $totalPokdarwisShare = $bundlingSettlements->sum('total_pokdarwis_income');
 
         return response()->json([
             'status' => 'success',
@@ -102,7 +115,10 @@ class UmkmSalesController extends Controller
                 'bundling_gross_sales' => (int) $bundlingGrossSales,
                 'total_bundling_transactions' => (int) $totalBundlingTransactions,
                 'total_gross_sales' => (int) $totalGrossSales,
-                'total_umkm_income' => (int) $totalUmkmIncome,
+                'standalone_income' => (int) $standaloneIncome,
+                'bundling_umkm_income' => (int) $bundlingUmkmIncome,
+                'total_umkm_revenue' => (int) ($standaloneIncome + $bundlingUmkmIncome),
+                'total_umkm_income' => (int) ($standaloneIncome + $bundlingUmkmIncome),
                 'total_paid_income' => (int) $totalPaidIncome,
                 'total_pending_income' => (int) $totalPendingIncome,
                 'total_pokdarwis_share' => (int) $totalPokdarwisShare,
@@ -122,6 +138,7 @@ class UmkmSalesController extends Controller
             'ticket.user',
             'ticket.destination',
             'ticket.validatedBy',
+            'offlineSale',
             'umkmProduct.images'
         ])->whereHas('umkmProduct', function ($q) use ($userId) {
             $q->where('umkm_id', $userId);
@@ -131,6 +148,108 @@ class UmkmSalesController extends Controller
             'status' => 'success',
             'data' => $settlement
         ]);
+    }
+
+    public function cashierProducts(Request $request)
+    {
+        if ($request->user()->role !== 'umkm_mitra') {
+            return response()->json(['message' => 'Akses hanya untuk mitra UMKM.'], 403);
+        }
+
+        $umkmId = $request->user()->umkm_id ?? $request->user()->id;
+        $products = UmkmProduct::query()
+            ->with('images')
+            ->where('umkm_id', $umkmId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $products,
+        ]);
+    }
+
+    public function storeOfflineSale(Request $request)
+    {
+        if ($request->user()->role !== 'umkm_mitra') {
+            return response()->json(['message' => 'Akses hanya untuk mitra UMKM.'], 403);
+        }
+
+        $validated = $request->validate([
+            'payment_method' => 'required|in:cash,manual_transfer',
+            'items' => 'required|array|min:1|max:50',
+            'items.*.umkm_product_id' => 'required|integer|distinct|exists:umkm_products,id',
+            'items.*.quantity' => 'required|integer|min:1|max:1000',
+        ]);
+
+        $user = $request->user();
+        $umkmId = $user->umkm_id ?? $user->id;
+
+        $sale = DB::transaction(function () use ($validated, $user, $umkmId) {
+            $items = collect($validated['items'])->keyBy('umkm_product_id');
+            $productIds = $items->keys()->sort()->values();
+            $products = UmkmProduct::query()
+                ->where('umkm_id', $umkmId)
+                ->where('is_active', true)
+                ->whereIn('id', $productIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            if ($products->count() !== $productIds->count()) {
+                throw ValidationException::withMessages([
+                    'items' => 'Satu atau lebih produk tidak tersedia untuk kasir UMKM ini.',
+                ]);
+            }
+
+            foreach ($products as $product) {
+                $quantity = (int) $items->get($product->id)['quantity'];
+                if ($product->stock < $quantity) {
+                    throw ValidationException::withMessages([
+                        'items' => "Stok {$product->name} tidak mencukupi. Sisa stok: {$product->stock}.",
+                    ]);
+                }
+            }
+
+            $totalAmount = $products->sum(
+                fn (UmkmProduct $product) => $product->price * (int) $items->get($product->id)['quantity']
+            );
+
+            $sale = UmkmOfflineSale::create([
+                'cashier_id' => $user->id,
+                'receipt_code' => 'POS-' . now()->format('ymd') . '-' . Str::upper(Str::random(6)),
+                'payment_method' => $validated['payment_method'],
+                'total_amount' => $totalAmount,
+            ]);
+
+            foreach ($products as $product) {
+                $quantity = (int) $items->get($product->id)['quantity'];
+                $umkmIncome = $product->price * $quantity;
+
+                $product->decrement('stock', $quantity);
+
+                $sale->items()->create([
+                    'umkm_product_id' => $product->id,
+                    'qty' => $quantity,
+                    'unit_price' => $product->price,
+                    'total_umkm_income' => $umkmIncome,
+                    'total_pokdarwis_income' => 0,
+                    'status' => 'paid',
+                    'settled_at' => now(),
+                    'notes' => 'Penjualan offline ' . $sale->receipt_code,
+                ]);
+            }
+
+            return $sale->load('items.umkmProduct.images', 'cashier');
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Transaksi offline berhasil dicatat dan stok produk telah diperbarui.',
+            'data' => $sale,
+        ], 201);
     }
 
     /**
@@ -178,7 +297,7 @@ class UmkmSalesController extends Controller
     {
         $userId = auth()->id();
 
-        $query = ConsignmentSettlement::with(['ticket.user', 'umkmProduct'])
+        $query = ConsignmentSettlement::with(['ticket.user', 'umkmProduct', 'offlineSale'])
             ->whereHas('umkmProduct', function ($q) use ($userId) {
                 $q->where('umkm_id', $userId);
             });
@@ -193,7 +312,7 @@ class UmkmSalesController extends Controller
         $summary = [
             'total_qty' => $settlements->sum('qty'),
             'total_gross' => $settlements->sum(function ($item) {
-                return $item->qty * ($item->umkmProduct->price ?? 0);
+                return $item->qty * ($item->unit_price ?? $item->umkmProduct->price ?? 0);
             }),
             'total_umkm_income' => (int) $settlements->sum('total_umkm_income'),
             'total_paid' => (int) $settlements->where('status', 'paid')->sum('total_umkm_income'),

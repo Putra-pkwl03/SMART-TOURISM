@@ -14,6 +14,7 @@ export default function HeroSection() {
        {/* Soft & Bright Overlay Gradients (Dibuat jauh lebih terang/tidak gelap) */}
             <div className="absolute inset-0 bg-gradient-to-r from-slate-950/50 via-emerald-950/10 to-transparent z-0" />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent z-0" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-32 bg-gradient-to-t from-slate-50 via-slate-50/60 to-transparent" />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-24 lg:pb-28 w-full relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
                 
@@ -88,7 +89,7 @@ export default function HeroSection() {
 
                 {/* Right Widget Column */}
                 <div className="lg:col-span-5 flex justify-center lg:justify-end">
-                    <div className="w-full max-w-md transform hover:-translate-y-1 transition-transform duration-500">
+                    <div id="ews-detail" className="w-full max-w-md transform scroll-mt-24 hover:-translate-y-1 transition-transform duration-500">
                         <EwsWeatherWidget />
                     </div>
                 </div>

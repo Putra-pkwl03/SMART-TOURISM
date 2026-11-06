@@ -1,17 +1,21 @@
 'use client';
 
-import { ShoppingBag, CheckCircle, Clock } from 'lucide-react';
+import { ShoppingBag, CheckCircle, Clock, Store, CircleDollarSign } from 'lucide-react';
 
 interface SalesStatsProps {
     totalItemsSold: number;
+    standaloneIncome: number;
     totalPaidIncome: number;
     totalPendingIncome: number;
+    totalUmkmRevenue: number;
 }
 
 export default function SalesStats({
     totalItemsSold,
+    standaloneIncome,
     totalPaidIncome,
     totalPendingIncome,
+    totalUmkmRevenue,
 }: SalesStatsProps) {
     const formatRupiah = (num: number) => {
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
@@ -21,34 +25,52 @@ export default function SalesStats({
         {
             title: 'Total Keseluruhan Terjual',
             value: `${totalItemsSold} Pcs`,
-            subtitle: 'Akumulasi produk konsinyasi',
+            subtitle: 'Penjualan satuan POS + produk bundling',
             icon: ShoppingBag,
             cardBg: 'bg-gradient-to-br from-emerald-100/80 via-white to-white',
             iconBg: 'bg-emerald-200/70 text-emerald-800',
             textColor: 'text-slate-900',
         },
         {
-            title: 'Sudah Dicairkan (Paid)',
+            title: 'Pendapatan Penjualan Satuan',
+            value: formatRupiah(standaloneIncome),
+            subtitle: 'Omzet langsung dari transaksi POS',
+            icon: Store,
+            cardBg: 'bg-gradient-to-br from-purple-100/80 via-white to-white',
+            iconBg: 'bg-purple-200/70 text-purple-800',
+            textColor: 'text-purple-700',
+        },
+        {
+            title: 'Bagi Hasil Bundling Dibayar',
             value: formatRupiah(totalPaidIncome),
-            subtitle: 'Dana lunas / diterima UMKM',
+            subtitle: 'Pencairan bundling yang sudah diterima',
             icon: CheckCircle,
             cardBg: 'bg-gradient-to-br from-teal-100/80 via-white to-white',
             iconBg: 'bg-teal-200/70 text-teal-800',
             textColor: 'text-teal-700',
         },
         {
-            title: 'Pending EOM (Belum Cair)',
+            title: 'Bagi Hasil Bundling Pending',
             value: formatRupiah(totalPendingIncome),
-            subtitle: 'Akumulasi audit akhir bulan',
+            subtitle: 'Menunggu rekonsiliasi akhir bulan',
             icon: Clock,
             cardBg: 'bg-gradient-to-br from-amber-100/80 via-white to-white',
             iconBg: 'bg-amber-200/70 text-amber-800',
             textColor: 'text-amber-700',
         },
+        {
+            title: 'Total Pendapatan UMKM',
+            value: formatRupiah(totalUmkmRevenue),
+            subtitle: 'Omzet satuan + hak UMKM dari bundling',
+            icon: CircleDollarSign,
+            cardBg: 'bg-gradient-to-br from-emerald-100/80 via-white to-white',
+            iconBg: 'bg-emerald-200/70 text-emerald-800',
+            textColor: 'text-emerald-700',
+        },
     ];
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
             {stats.map((stat, index) => {
                 const IconComponent = stat.icon;
                 return (

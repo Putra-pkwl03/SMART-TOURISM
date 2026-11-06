@@ -1,16 +1,29 @@
 'use client';
 
 import { useState } from 'react';
-import { ShoppingBag, Package, Image as ImageIcon } from 'lucide-react';
-import { toast } from 'sonner';
+import Link from 'next/link';
+import { ShoppingBag, Package, Image as ImageIcon, ArrowRight } from 'lucide-react';
+import { getBackendUrl } from '@/app/lib/backend-url';
+import UmkmProductDetailModal, { type UmkmCatalogProduct } from './UmkmProductDetailModal';
 
 interface UmkmProductCatalogProps {
-    products: any[];
+    products: UmkmCatalogProduct[];
     loading: boolean;
+    showAllLink?: boolean;
+    limit?: number;
+    embedded?: boolean;
 }
 
-export default function UmkmProductCatalog({ products, loading }: UmkmProductCatalogProps) {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+export default function UmkmProductCatalog({
+    products,
+    loading,
+    showAllLink = false,
+    limit,
+    embedded = false,
+}: UmkmProductCatalogProps) {
+    const backendUrl = getBackendUrl();
+    const whatsappNumber = '6282314969109';
+    const [selectedProduct, setSelectedProduct] = useState<UmkmCatalogProduct | null>(null);
 
     // State untuk melacak indeks gambar yang aktif untuk setiap produk (berdasarkan product.id)
     const [activeImageIndexes, setActiveImageIndexes] = useState<{ [key: number]: number }>({});
@@ -20,8 +33,8 @@ export default function UmkmProductCatalog({ products, loading }: UmkmProductCat
     };
 
     return (
-        <section id="umkm" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12 scroll-mt-24">
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8">
+        <section id="umkm" className={embedded ? 'min-w-0 scroll-mt-24' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12 scroll-mt-24 '}>
+            <div className={`flex flex-col gap-4 md:flex-row md:items-end md:justify-between ${embedded ? 'mb-6' : 'mb-8'}`}>
                 <div>
                    <span className="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-2 block">
                         Produk Lokal dan Oleh-Oleh
@@ -33,11 +46,17 @@ export default function UmkmProductCatalog({ products, loading }: UmkmProductCat
                         Beli langsung produk khas warga lokal secara mandiri tanpa harus membeli tiket wisata.
                     </p>
                 </div>
+                {showAllLink && (
+                    <Link href="/umkm/produk" className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-emerald-100 bg-white px-4 py-2.5 text-xs font-bold text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50">
+                        Lihat Semua Produk
+                        <ArrowRight className="h-4 w-4" />
+                    </Link>
+                )}
             </div>
 
             {loading ? (
                 <div
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
                     role="status"
                     aria-label="Memuat produk UMKM"
                 >
@@ -66,20 +85,26 @@ export default function UmkmProductCatalog({ products, loading }: UmkmProductCat
                     <p className="text-sm font-medium text-slate-600">Belum ada produk UMKM yang tersedia saat ini.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {products.map((product) => {
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {(limit ? products.slice(0, limit) : products).map((product) => {
                         const images = product.images || [];
                         const activeIndex = activeImageIndexes[product.id] || 0;
                         
                         // Pilih gambar aktif, fallback ke gambar utama (is_primary), atau placeholder
-                        const currentImage = images[activeIndex] || images.find((img: any) => img.is_primary) || images[0];
+                        const currentImage = images[activeIndex] || images.find((img) => img.is_primary) || images[0];
                         const imageUrl = currentImage ? `${backendUrl}/storage/${currentImage.image_path}` : '/images/placeholder.jpg';
 
                         return (
-                            <div key={product.id} className="bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:border-emerald-200 overflow-hidden flex flex-col justify-between group transition-all duration-300">
-                                <div>
+                            <article key={product.id} className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl">
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedProduct(product)}
+                                    aria-label={`Lihat detail ${product.name}`}
+                                    className="absolute inset-0 z-0 cursor-pointer"
+                                />
+                                <div className="relative z-10 pointer-events-none">
                                     {/* Bagian Gambar Produk & Multi-Image Preview */}
-                                    <div className="relative h-48 bg-slate-100 overflow-hidden">
+                                    <div className={`relative bg-slate-100 overflow-hidden ${embedded ? 'h-40 xl:h-44' : 'h-48'}`}>
                                         <img 
                                             src={imageUrl} 
                                             alt={product.name} 
@@ -102,11 +127,15 @@ export default function UmkmProductCatalog({ products, loading }: UmkmProductCat
                                     {/* Thumbnail Kecil Jika Ada Lebih dari 1 Foto */}
                                     {images.length > 1 && (
                                         <div className="flex gap-1.5 px-4 pt-3 overflow-x-auto">
-                                            {images.map((img: any, idx: number) => (
+                                            {images.map((img, idx) => (
                                                 <button
                                                     key={img.id}
-                                                    onClick={() => handleImageChange(product.id, idx)}
-                                                    className={`w-10 h-10 rounded-lg overflow-hidden border-2 transition shrink-0 ${activeIndex === idx ? 'border-emerald-600 scale-95 shadow-sm' : 'border-transparent opacity-70 hover:opacity-100'}`}
+                                                    type="button"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        handleImageChange(product.id, idx);
+                                                    }}
+                                                    className={`pointer-events-auto relative z-20 w-10 h-10 rounded-lg overflow-hidden border-2 transition shrink-0 ${activeIndex === idx ? 'border-emerald-600 scale-95 shadow-sm' : 'border-transparent opacity-70 hover:opacity-100'}`}
                                                 >
                                                     <img 
                                                         src={`${backendUrl}/storage/${img.image_path}`} 
@@ -127,20 +156,26 @@ export default function UmkmProductCatalog({ products, loading }: UmkmProductCat
                                     </div>
                                 </div>
                                 <div className="p-5 pt-0">
-                                    <button 
-                                        onClick={() => {
-                                            toast.info(`Fitur keranjang untuk produk "${product.name}" segera hadir!`);
-                                        }}
-                                        className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 hover:shadow-md text-white font-semibold text-xs rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
+                                    <a
+                                        href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Halo, saya ingin bertanya mengenai produk ${product.name}. Apakah produk ini masih tersedia? Mohon informasi harga dan cara pembeliannya. Terima kasih.`)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(event) => event.stopPropagation()}
+                                        className="pointer-events-auto relative z-20 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 hover:shadow-md text-white font-semibold text-xs rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
                                     >
                                         <ShoppingBag className="w-4 h-4" /> Beli Produk
-                                    </button>
+                                    </a>
                                 </div>
-                            </div>
+                            </article>
                         );
                     })}
                 </div>
             )}
+            <UmkmProductDetailModal
+                key={selectedProduct?.id ?? 'closed'}
+                product={selectedProduct}
+                onClose={() => setSelectedProduct(null)}
+            />
         </section>
     );
 }

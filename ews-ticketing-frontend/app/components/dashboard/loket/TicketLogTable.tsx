@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ArrowRight, RefreshCw } from 'lucide-react';
 import type { LoketDashboardData } from '@/app/lib/loket-dashboard';
+import { Skeleton } from '@/app/components/dashboard/shared/DashboardSkeleton';
 
 interface TicketLogTableProps {
     logs: LoketDashboardData['recent_logs'];
@@ -44,7 +45,15 @@ export default function TicketLogTable({ logs, loading, onRefresh }: TicketLogTa
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                         {loading && logs.length === 0 ? (
-                            <tr><td colSpan={5} className="py-10 text-center text-slate-400">Memuat log verifikasi...</td></tr>
+                            Array.from({ length: 5 }, (_, row) => (
+                                <tr key={row} className="animate-pulse">
+                                    {Array.from({ length: 5 }, (_, column) => (
+                                        <td key={column} className="px-3 py-4">
+                                            <Skeleton className="h-4 w-4/5" />
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))
                         ) : logs.length === 0 ? (
                             <tr><td colSpan={5} className="py-10 text-center text-slate-400">Belum ada tiket yang dipindai.</td></tr>
                         ) : logs.map((log) => (

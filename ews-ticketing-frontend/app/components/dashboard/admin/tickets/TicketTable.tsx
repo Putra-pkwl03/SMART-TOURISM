@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Eye, CheckCircle2, XCircle, Loader2, MapPin, Calendar, ChevronDown, ChevronUp, QrCode } from 'lucide-react';
+import { Fragment, useState } from 'react';
+import { Eye, CheckCircle2, XCircle, MapPin, Calendar, ChevronDown, ChevronUp, QrCode } from 'lucide-react';
+import { SkeletonTable } from '@/app/components/dashboard/shared/DashboardSkeleton';
 
 interface TicketItem {
     id: number;
@@ -50,12 +51,7 @@ export default function TicketTable({
     };
 
     if (loading) {
-        return (
-            <div className="bg-white/90 backdrop-blur-md rounded-3xl border border-slate-100 shadow-sm p-16 flex flex-col items-center justify-center text-slate-400 gap-2">
-                <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
-                <span className="text-xs font-medium">Memuat data tiket...</span>
-            </div>
-        );
+        return <SkeletonTable columns={7} rows={6} />;
     }
 
     if (tickets.length === 0) {
@@ -100,8 +96,8 @@ export default function TicketTable({
                                     : 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=200&q=80';
 
                                 return (
-                                    <>
-                                        <tr key={ticket.id} className="hover:bg-slate-50/50 transition">
+                                    <Fragment key={ticket.id}>
+                                        <tr className="hover:bg-slate-50/50 transition">
                                             <td className="p-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 border border-slate-200">
@@ -251,7 +247,7 @@ export default function TicketTable({
                                                 </td>
                                             </tr>
                                         )}
-                                    </>
+                                    </Fragment>
                                 );
                             })}
                         </tbody>

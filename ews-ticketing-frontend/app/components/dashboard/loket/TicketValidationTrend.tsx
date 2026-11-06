@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Activity } from 'lucide-react';
 import type { LoketDashboardData } from '@/app/lib/loket-dashboard';
+import { SkeletonChart } from '@/app/components/dashboard/shared/DashboardSkeleton';
 
 interface TicketValidationTrendProps {
     data: LoketDashboardData['trend'];
@@ -62,7 +63,7 @@ export default function TicketValidationTrend({
             </div>
 
             {isLoading ? (
-                <div className="flex h-48 items-center justify-center text-xs text-slate-400">Memuat tren validasi...</div>
+                <SkeletonChart showHeader={false} className="h-48 border-0 p-0 shadow-none" />
             ) : data.length ? (
                 <svg className="h-48 w-full overflow-visible" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" role="img" aria-label={`Tren validasi tiket ${period} hari`}>
                     {[0, 1, 2].map((step) => {

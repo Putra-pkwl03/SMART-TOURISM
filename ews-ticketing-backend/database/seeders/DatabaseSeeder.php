@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -18,6 +17,8 @@ class DatabaseSeeder extends Seeder
         // Memanggil seeder khusus user
         $this->call([
             UserSeeder::class,
+            UmkmProductSeeder::class,
+            DestinationSeeder::class,
         ]);
     }
 }

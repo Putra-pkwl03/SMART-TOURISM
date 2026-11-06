@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ConsignmentSettlement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class ConsignmentController extends Controller
@@ -19,7 +20,7 @@ class ConsignmentController extends Controller
             'ticket.user', 
             'ticket.destination.images', 
             'umkmProduct.images'
-        ]);
+        ])->whereNotNull('ticket_id');
 
         // 1. Filter Berdasarkan Produk UMKM
         if ($request->filled('umkm_product_id') && $request->umkm_product_id !== 'ALL') {
@@ -106,11 +107,20 @@ class ConsignmentController extends Controller
     {
         $validated = $request->validate([
             'ids' => 'required|array',
-            'ids.*' => 'exists:consignment_settlements,id',
+            'ids.*' => 'required|distinct|exists:consignment_settlements,id',
             'notes' => 'nullable|string',
         ]);
 
-        ConsignmentSettlement::whereIn('id', $validated['ids'])->update([
+        $bundlingSettlements = ConsignmentSettlement::whereIn('id', $validated['ids'])
+            ->whereNotNull('ticket_id');
+
+        if ($bundlingSettlements->count() !== count($validated['ids'])) {
+            throw ValidationException::withMessages([
+                'ids' => 'Pencairan konsinyasi hanya berlaku untuk transaksi bundling tiket.',
+            ]);
+        }
+
+        $bundlingSettlements->update([
             'status' => 'paid',
             'settled_at' => Carbon::now(),
             'notes' => $validated['notes'] ?? 'Pencairan dana konsinyasi akhir bulan (EOM)'
@@ -127,7 +137,8 @@ class ConsignmentController extends Controller
  */
     public function exportReport(Request $request)
     {
-        $query = ConsignmentSettlement::with(['ticket.user', 'umkmProduct']);
+        $query = ConsignmentSettlement::with(['ticket.user', 'umkmProduct'])
+            ->whereNotNull('ticket_id');
 
         if ($request->filled('month') && $request->filled('year')) {
             $query->whereMonth('created_at', $request->month)

@@ -116,6 +116,7 @@ class AdminDashboardController extends Controller
 
         $consignmentProducts = UmkmProduct::query()
             ->where('is_active', true)
+            ->whereHas('destinations')
             ->with(['images' => fn ($query) => $query->orderByDesc('is_primary')->limit(1)])
             ->orderByDesc('stock')
             ->limit(3)
@@ -150,6 +151,7 @@ class AdminDashboardController extends Controller
                     ->whereBetween('tickets.created_at', [$start, $end])
                     ->sum('ticket_items.quantity'),
                 'pending_consignments' => (int) ConsignmentSettlement::query()
+                    ->whereNotNull('ticket_id')
                     ->where('status', 'pending')
                     ->count(),
             ],

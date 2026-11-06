@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { MapPin, Loader2, Images as ImageIcon, ShieldCheck, Ticket, Boxes } from 'lucide-react';
+import { MapPin, Loader2, Images as ImageIcon, ShieldCheck, Boxes } from 'lucide-react';
 import { apiClient } from '@/app/lib/axios';
 import { getBackendUrl } from '@/app/lib/backend-url';
 import { toast } from 'sonner';
@@ -210,19 +210,16 @@ function DestinationDetailContent() {
     return (
         <main className="flex-1 max-w-7xl w-full mx-auto py-12 px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                {/* Kolom Kiri: Galeri Foto & Detail Destinasi */}
+                {/* Kolom Kiri: Detail Destinasi */}
                 <div className="lg:col-span-2 space-y-8">
                     <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden p-6 sm:p-8 space-y-6">
-                        
                         <div className="space-y-4">
-                            {/* Gambar Utama */}
                             <div className="h-72 sm:h-96 rounded-2xl bg-slate-900 relative overflow-hidden shadow-inner group">
-                                <div 
+                                <div
                                     className="absolute inset-0 bg-cover bg-center transition-all duration-500"
                                     style={{ backgroundImage: `url('${currentSlide.url}')` }}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent opacity-80 pointer-events-none" />
-                                
                                 <div className="absolute top-4 left-4 flex flex-col gap-1 z-10">
                                     <span className={`px-3 py-1.5 rounded-full backdrop-blur-md text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md ${
                                         destination.is_active ? 'bg-emerald-600/90' : 'bg-red-600/90'
@@ -236,7 +233,6 @@ function DestinationDetailContent() {
                                         </span>
                                     )}
                                 </div>
-
                                 <div className="absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between text-white">
                                     <div>
                                         {currentSlide.type === 'umkm' ? (
@@ -254,46 +250,35 @@ function DestinationDetailContent() {
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Thumbnail Foto Di Bawah (Mencakup Foto Destinasi & Produk UMKM) */}
                             {slides.length > 1 && (
                                 <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-thin">
-                                    {slides.map((s, idx) => (
+                                    {slides.map((slide, index) => (
                                         <button
-                                            key={idx}
-                                            onClick={() => setActiveImageIndex(idx)}
-                                            className={`relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 transition-all duration-300 border-2 ${
-                                                activeImageIndex === idx 
-                                                    ? 'border-emerald-600 shadow-md scale-105 ring-2 ring-emerald-500/20' 
-                                                    : 'border-transparent opacity-60 hover:opacity-100'
+                                            key={`${slide.type}-${index}`}
+                                            type="button"
+                                            onClick={() => setActiveImageIndex(index)}
+                                            aria-label={`Tampilkan foto ${index + 1}`}
+                                            className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 transition-all duration-300 ${
+                                                activeImageIndex === index ? 'border-emerald-600 shadow-md scale-105 ring-2 ring-emerald-500/20' : 'border-transparent opacity-60 hover:opacity-100'
                                             }`}
-                                            title={s.title}
+                                            title={slide.title}
                                         >
-                                            <div 
-                                                className="absolute inset-0 bg-cover bg-center"
-                                                style={{ backgroundImage: `url('${s.url}')` }}
-                                            />
-                                            {s.type === 'umkm' && (
-                                                <div className="absolute bottom-0 inset-x-0 bg-emerald-900/80 text-[9px] text-white text-center font-bold py-0.5 truncate px-1">
-                                                    UMKM
-                                                </div>
+                                            <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${slide.url}')` }} />
+                                            {slide.type === 'umkm' && (
+                                                <span className="absolute inset-x-0 bottom-0 truncate bg-emerald-900/80 px-1 py-0.5 text-center text-[9px] font-bold text-white">UMKM</span>
                                             )}
                                         </button>
                                     ))}
                                 </div>
                             )}
                         </div>
-
                         <div className="space-y-3">
-                            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                                {destination.name}
-                            </h1>
+                            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{destination.name}</h1>
                             <p className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
                                 <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                                 <span>{destination.location || 'Ngoro-Oro, Patuk, Gunungkidul'}</span>
                             </p>
                         </div>
-
                         <hr className="border-slate-100" />
 
                         <div className="space-y-2">

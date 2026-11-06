@@ -24,10 +24,10 @@ export default function PublicFooter() {
                 <div>
                     <h5 className="font-bold text-xs uppercase tracking-wider text-slate-300 mb-4">Menu Utama</h5>
                     <ul className="space-y-2 text-xs text-slate-400">
-                        <li><Link href="#" className="hover:text-white transition">Beranda</Link></li>
-                        <li><Link href="#destinasi" className="hover:text-white transition">Destinasi</Link></li>
-                        <li><Link href="#booking" className="hover:text-white transition">E-Ticket</Link></li>
-                        <li><Link href="#" className="hover:text-white transition">Paket Wisata</Link></li>
+                        <li><Link href="/" className="hover:text-white transition">Beranda</Link></li>
+                        <li><Link href="/#destinasi" className="hover:text-white transition">Destinasi</Link></li>
+                        <li><Link href="/#booking" className="hover:text-white transition">E-Ticket</Link></li>
+                        <li><Link href="/tentang" className="hover:text-white transition">Tentang UMKM</Link></li>
                     </ul>
                 </div>
 

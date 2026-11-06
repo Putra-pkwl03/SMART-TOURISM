@@ -39,7 +39,7 @@ class UmkmDashboardController extends Controller
             ->whereBetween('consignment_settlements.created_at', [$monthStart, $monthEnd])
             ->selectRaw('
                 COALESCE(SUM(consignment_settlements.qty), 0) as sold_quantity,
-                COALESCE(SUM(consignment_settlements.qty * umkm_products.price), 0) as gross_sales,
+                COALESCE(SUM(consignment_settlements.qty * COALESCE(consignment_settlements.unit_price, umkm_products.price)), 0) as gross_sales,
                 COALESCE(SUM(consignment_settlements.total_umkm_income), 0) as estimated_income
             ')
             ->first();
@@ -69,7 +69,8 @@ class UmkmDashboardController extends Controller
                 'umkm_products.name',
                 'umkm_products.price',
                 'umkm_products.stock',
-                DB::raw('SUM(consignment_settlements.qty) as sold_quantity')
+                DB::raw('SUM(consignment_settlements.qty) as sold_quantity'),
+                DB::raw('SUM(consignment_settlements.qty * COALESCE(consignment_settlements.unit_price, umkm_products.price)) as gross_sales')
             )
             ->groupBy('umkm_products.id', 'umkm_products.name', 'umkm_products.price', 'umkm_products.stock')
             ->get();
@@ -88,7 +89,7 @@ class UmkmDashboardController extends Controller
                 'price' => (int) $product->price,
                 'stock' => (int) $product->stock,
                 'sold_quantity' => (int) $product->sold_quantity,
-                'gross_sales' => (int) ($product->sold_quantity * $product->price),
+                'gross_sales' => (int) $product->gross_sales,
                 'image_path' => $productImages->get($product->id)?->images->first()?->image_path,
             ];
         });

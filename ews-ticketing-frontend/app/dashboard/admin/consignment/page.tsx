@@ -12,6 +12,7 @@ import ConsignmentToolbar from '@/app/components/dashboard/admin/consignment/Con
 import ConsignmentTable from '@/app/components/dashboard/admin/consignment/ConsignmentTable';
 import ConsignmentChart from '@/app/components/dashboard/admin/consignment/ConsignmentChart';
 import ConfirmSettlementModal from '@/app/components/dashboard/admin/consignment/ConfirmSettlementModal';
+import { ConsignmentAnalyticsSkeleton, SkeletonStats, SkeletonTable } from '@/app/components/dashboard/shared/DashboardSkeleton';
 
 interface ConsignmentItem {
     id: number;
@@ -112,7 +113,15 @@ export default function ConsignmentPage() {
         return () => window.clearTimeout(timeoutId);
     }, [selectedProductFilter, selectedStatusFilter, selectedMonth, selectedYear]);
 
-    if (!selectedYear) return null;
+    if (!selectedYear) {
+        return (
+            <div className="space-y-6">
+                <SkeletonStats count={3} className="sm:grid-cols-3 xl:grid-cols-3" />
+                <ConsignmentAnalyticsSkeleton />
+                <SkeletonTable columns={7} rows={6} />
+            </div>
+        );
+    }
 
     const formatRupiah = (number: number) => {
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number);
@@ -258,23 +267,31 @@ export default function ConsignmentPage() {
             </div>
 
             {/* Kartu Ringkasan (Stats Cards) */}
-            <ConsignmentStats 
-                totalTransactions={totalTransactions}
-                totalPaidUmkm={summary.total_paid_umkm}
-                totalUnpaidUmkm={summary.total_unpaid_umkm}
-                formatRupiah={formatRupiah}
-            />
+            {loading ? (
+                <SkeletonStats count={3} className="sm:grid-cols-3 xl:grid-cols-3" />
+            ) : (
+                <ConsignmentStats
+                    totalTransactions={totalTransactions}
+                    totalPaidUmkm={summary.total_paid_umkm}
+                    totalUnpaidUmkm={summary.total_unpaid_umkm}
+                    formatRupiah={formatRupiah}
+                />
+            )}
 
             {/* Komponen Visualisasi Grafik Proporsi & Pendapatan Kotor */}
-            <ConsignmentChart 
-                summary={{
-                    total_items_sold: totalItemsSold,
-                    total_gross_sales: grossSales,
-                    total_umkm_income: summary.overall_umkm_income,
-                    total_pokdarwis_income: summary.overall_pokdarwis_income,
-                }}
-                formatRupiah={formatRupiah}
-            />
+            {loading ? (
+                <ConsignmentAnalyticsSkeleton />
+            ) : (
+                <ConsignmentChart
+                    summary={{
+                        total_items_sold: totalItemsSold,
+                        total_gross_sales: grossSales,
+                        total_umkm_income: summary.overall_umkm_income,
+                        total_pokdarwis_income: summary.overall_pokdarwis_income,
+                    }}
+                    formatRupiah={formatRupiah}
+                />
+            )}
 
             {/* Toolbar Search & Filter */}
             <ConsignmentToolbar 

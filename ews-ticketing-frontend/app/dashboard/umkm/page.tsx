@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Loader2 } from 'lucide-react';
 import { apiClient } from '@/app/lib/axios';
 import DashboardStats from '@/app/components/dashboard/umkm/dashboard/DashboardStats';
 import GrowthCard from '@/app/components/dashboard/umkm/dashboard/GrowthCard';
 import SalesAnalytics from '@/app/components/dashboard/umkm/dashboard/SalesAnalytics';
 import TopProducts from '@/app/components/dashboard/umkm/dashboard/TopProducts';
 import type { UmkmDashboardData } from '@/app/components/dashboard/umkm/dashboard/types';
+import { SkeletonStats, SkeletonTable, UmkmDashboardSkeleton } from '@/app/components/dashboard/shared/DashboardSkeleton';
 
 export default function UmkmDashboardPage() {
     const [dashboard, setDashboard] = useState<UmkmDashboardData | null>(null);
@@ -64,13 +64,10 @@ export default function UmkmDashboardPage() {
             )}
 
             {loading && !dashboard ? (
-                <div className="flex min-h-32 items-center justify-center gap-3 rounded-2xl border border-slate-100 bg-white/90 text-sm font-semibold text-slate-500">
-                    <Loader2 className="h-5 w-5 animate-spin text-emerald-600" />
-                    Memuat ringkasan UMKM...
-                </div>
+                <UmkmDashboardSkeleton />
             ) : dashboard ? (
                 <>
-                    <DashboardStats summary={dashboard.summary} />
+                    {loading ? <SkeletonStats /> : <DashboardStats summary={dashboard.summary} />}
                     <SalesAnalytics
                         salesTrend={dashboard.sales_trend}
                         productComposition={dashboard.product_composition}
@@ -84,7 +81,11 @@ export default function UmkmDashboardPage() {
                     />
                     <section className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-[0.95fr_2fr]">
                         <GrowthCard />
-                        <TopProducts products={dashboard.top_products} />
+                        {loading ? (
+                            <SkeletonTable columns={5} rows={4} className="min-h-64" />
+                        ) : (
+                            <TopProducts products={dashboard.top_products} />
+                        )}
                     </section>
                 </>
             ) : !error ? (

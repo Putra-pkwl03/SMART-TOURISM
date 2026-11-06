@@ -1,9 +1,10 @@
 'use client';
 
 import { Fragment, useState } from 'react';
-import { Package, Edit, Trash2, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Layers } from 'lucide-react';
+import { Package, Edit, Trash2, ChevronLeft, ChevronRight, AlertTriangle, Layers } from 'lucide-react';
 import { getBackendUrl } from '@/app/lib/backend-url';
 import StockUpdateModal from './StockUpdateModal';
+import { SkeletonTable } from '@/app/components/dashboard/shared/DashboardSkeleton';
 
 interface ProductTableProps {
     products: any[];
@@ -56,10 +57,7 @@ export default function ProductTable({
     if (loading) {
         return (
             <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-xs">
-                <div className="flex flex-col items-center justify-center py-20 text-gray-400 gap-2">
-                    <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-                    <span className="text-sm font-semibold">Memuat katalog produk...</span>
-                </div>
+                <SkeletonTable columns={6} rows={6} className="border-0 shadow-none" />
             </div>
         );
     }

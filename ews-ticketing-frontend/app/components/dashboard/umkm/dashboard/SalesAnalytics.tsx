@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { BarChart3, Loader2, Tags } from 'lucide-react';
+import { BarChart3, Tags } from 'lucide-react';
 import type { UmkmProductCompositionItem, UmkmSalesTrendPoint } from './types';
+import { SkeletonChart, SkeletonDonutContent } from '@/app/components/dashboard/shared/DashboardSkeleton';
 
 const formatNumber = (value: number) => new Intl.NumberFormat('id-ID').format(value);
 const palette = ['#059669', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#0ea5e9'];
@@ -242,10 +243,7 @@ export default function SalesAnalytics({
                     </div>
                 </div>
                 {isLoading ? (
-                    <div className="flex h-56 items-center justify-center gap-2 text-sm text-slate-500">
-                        <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
-                        Memuat tren penjualan...
-                    </div>
+                    <SkeletonChart showHeader={false} className="h-56 border-0 p-0 shadow-none" />
                 ) : salesTrend.length ? (
                     <SalesTrendChart data={salesTrend} />
                 ) : (
@@ -259,7 +257,7 @@ export default function SalesAnalytics({
                     Komposisi Penjualan
                 </h2>
                 <p className="mt-1 text-xs text-slate-500">Produk terjual berdasarkan produk bulan ini</p>
-                <ProductComposition data={productComposition} />
+                {isLoading ? <SkeletonDonutContent rows={4} /> : <ProductComposition data={productComposition} />}
             </article>
         </section>
     );

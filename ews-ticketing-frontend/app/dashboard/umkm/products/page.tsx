@@ -8,6 +8,7 @@ import ProductModal from '@/app/components/dashboard/umkm/product/ProductModal';
 import ProductStats from '@/app/components/dashboard/umkm/product/ProductStats';
 import ProductToolbar from '@/app/components/dashboard/umkm/product/ProductToolbar';
 import ProductTable from '@/app/components/dashboard/umkm/product/ProductTable';
+import { SkeletonStats } from '@/app/components/dashboard/shared/DashboardSkeleton';
 
 export default function UmkmProductsPage() {
     const [products, setProducts] = useState<any[]>([]);
@@ -114,12 +115,14 @@ export default function UmkmProductsPage() {
 </div>
 
             {/* Komponen Statistik */}
-            <ProductStats 
-                totalProductsCount={totalProductsCount}
-                totalStockCount={totalStockCount}
-                lowStockCount={lowStockCount}
-                totalSoldEstimated={totalSoldEstimated}
-            />
+            {loading ? <SkeletonStats /> : (
+                <ProductStats
+                    totalProductsCount={totalProductsCount}
+                    totalStockCount={totalStockCount}
+                    lowStockCount={lowStockCount}
+                    totalSoldEstimated={totalSoldEstimated}
+                />
+            )}
 
             {/* Komponen Toolbar Search & Filter */}
             <ProductToolbar 

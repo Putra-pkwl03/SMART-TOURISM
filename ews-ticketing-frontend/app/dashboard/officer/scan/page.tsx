@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Scan, Search, CheckCircle2, UserCheck, Calendar, Users, ShieldAlert, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/app/lib/axios';
+import { Skeleton } from '@/app/components/dashboard/shared/DashboardSkeleton';
 import InlineScanner from '../../../components/dashboard/loket/sceener/InlineScanner';
 
 interface ValidatedVisitor {
@@ -156,9 +157,17 @@ export default function OfficerScanPage() {
                         </div>
 
                         {isFetchingLogs ? (
-                            <div className="py-20 text-center flex flex-col items-center justify-center">
-                                <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mb-2" />
-                                <p className="text-xs text-slate-400">Memuat riwayat log...</p>
+                            <div role="status" aria-label="Memuat riwayat log" className="space-y-3">
+                                {Array.from({ length: 5 }, (_, index) => (
+                                    <div key={index} className="flex items-center gap-4 rounded-xl border border-slate-100 p-4">
+                                        <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+                                        <div className="flex-1 space-y-2">
+                                            <Skeleton className="h-4 w-1/3" />
+                                            <Skeleton className="h-3 w-2/3" />
+                                        </div>
+                                        <Skeleton className="h-4 w-20" />
+                                    </div>
+                                ))}
                             </div>
                         ) : visitorLogs.length === 0 ? (
                             <div className="py-20 text-center flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-2xl">

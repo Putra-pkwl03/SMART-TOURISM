@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Loader2 } from 'lucide-react';
 import LoketStats from '@/app/components/dashboard/loket/LoketStats';
 import TicketVerifier from '@/app/components/dashboard/loket/TicketVerifier';
 import WeatherEwsWidget from '@/app/components/dashboard/loket/WeatherEwsWidget';
@@ -10,6 +9,7 @@ import TicketLogTable from '@/app/components/dashboard/loket/TicketLogTable';
 import TicketValidationTrend from '@/app/components/dashboard/loket/TicketValidationTrend';
 import { apiClient } from '@/app/lib/axios';
 import type { LoketDashboardData } from '@/app/lib/loket-dashboard';
+import { LoketDashboardSkeleton } from '@/app/components/dashboard/shared/DashboardSkeleton';
 
 export default function LoketDashboardPage() {
     const [period, setPeriod] = useState<7 | 30 | 90>(7);
@@ -67,10 +67,7 @@ export default function LoketDashboardPage() {
             )}
 
             {isLoading && !dashboard ? (
-                <div className="flex min-h-32 items-center justify-center gap-2 rounded-2xl border border-slate-100 bg-white text-xs text-slate-500">
-                    <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
-                    Memuat dashboard loket...
-                </div>
+                <LoketDashboardSkeleton />
             ) : (
                 <>
                     <LoketStats

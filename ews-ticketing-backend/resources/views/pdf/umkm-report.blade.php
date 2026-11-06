@@ -142,7 +142,7 @@
 
     <!-- Header Laporan -->
     <div class="header">
-        <h2>Laporan Rekonsiliasi Dan Pendapatan Konsinyasi UMKM</h2>
+        <h2>Laporan Penjualan & Pendapatan UMKM</h2>
         <p>Program Ekowisata & Rantai Pasok Desa Wisata Cerdas</p>
         <p>Periode Laporan: <strong>{{ $formattedMonth }} {{ $period['year'] ?? date('Y') }}</strong></p>
     </div>
@@ -160,7 +160,7 @@
                 <td><strong>Lokasi Usaha:</strong></td>
                 <td>Padukuhan Salaran, Ngoro-Oro, Patuk</td>
                 <td><strong>Status Dokumen:</strong></td>
-                <td>Resmi / Tersertifikasi EOM (End of Month)</td>
+                <td>Rekap penjualan satuan & bagi hasil bundling</td>
             </tr>
         </table>
     </div>
@@ -177,7 +177,7 @@
                 <span class="value">Rp {{ number_format($summary['total_gross'] ?? 0, 0, ',', '.') }}</span>
             </td>
             <td>
-                <span class="title">Hak Bersih UMKM</span>
+                <span class="title">Pendapatan UMKM</span>
                 <span class="value" style="color: #059669;">Rp {{ number_format($summary['total_umkm_income'] ?? 0, 0, ',', '.') }}</span>
             </td>
             <td>
@@ -199,7 +199,7 @@
                 <th style="width: 27%;">Nama Produk / Hampers</th>
                 <th style="width: 15%;" class="text-center">Jenis Penjualan</th>
                 <th style="width: 10%;" class="text-center">Qty</th>
-                <th style="width: 15%;" class="text-right">Hak UMKM (20%)</th>
+                <th style="width: 15%;" class="text-right">Pendapatan / Hak UMKM</th>
                 <th style="width: 10%;" class="text-center">Status</th>
             </tr>
         </thead>
@@ -210,12 +210,12 @@
                     <td>
                         <strong>{{ $item->created_at->format('d/m/Y') }}</strong><br>
                         <span style="font-size: 9px; color: #64748b;">
-                            {{ $item->ticket_id ? 'JT-' . $item->ticket_id : 'STANDALONE' }}
+                            {{ $item->ticket_id ? 'JT-' . $item->ticket_id : ($item->offlineSale->receipt_code ?? 'STANDALONE') }}
                         </span>
                     </td>
                     <td>
                         {{ $item->umkmProduct->name ?? 'Produk Konsinyasi' }}<br>
-                        <span style="font-size: 9px; color: #64748b;">Harga: Rp {{ number_format($item->umkmProduct->price ?? 0, 0, ',', '.') }}</span>
+                        <span style="font-size: 9px; color: #64748b;">Harga: Rp {{ number_format($item->unit_price ?? $item->umkmProduct->price ?? 0, 0, ',', '.') }}</span>
                     </td>
                     <td class="text-center">
                         @if($item->ticket_id)

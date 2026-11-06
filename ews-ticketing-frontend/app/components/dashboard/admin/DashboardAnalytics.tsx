@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { BarChart3, Loader2, TrendingUp } from 'lucide-react';
+import { BarChart3, TrendingUp } from 'lucide-react';
 import type {
     RevenueCompositionItem,
     VisitorTrendPoint,
 } from '@/app/lib/admin-dashboard';
+import { SkeletonChart, SkeletonDonutContent } from '@/app/components/dashboard/shared/DashboardSkeleton';
 
 interface DashboardAnalyticsProps {
     visitorTrend: VisitorTrendPoint[];
@@ -237,10 +238,7 @@ export default function DashboardAnalytics({
                     </div>
                 </div>
                 {isLoading ? (
-                    <div className="flex h-52 items-center justify-center gap-2 text-xs text-slate-500">
-                        <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
-                        Memuat data periode...
-                    </div>
+                    <SkeletonChart showHeader={false} className="h-52 border-0 p-0 shadow-none" />
                 ) : visitorTrend.length ? (
                     <VisitorChart data={visitorTrend} />
                 ) : (
@@ -253,7 +251,7 @@ export default function DashboardAnalytics({
                     <TrendingUp className="h-4 w-4 text-emerald-600 transition-transform duration-300 group-hover:scale-110" />
                     Komposisi Pendapatan
                 </h3>
-                <RevenueDonut data={revenueComposition} />
+                {isLoading ? <SkeletonDonutContent rows={2} /> : <RevenueDonut data={revenueComposition} />}
             </section>
         </div>
     );

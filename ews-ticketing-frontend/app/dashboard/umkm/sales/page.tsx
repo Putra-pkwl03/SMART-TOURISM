@@ -1,17 +1,38 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ShoppingBag, FileDown } from 'lucide-react';
+import { isAxiosError } from 'axios';
 import { apiClient } from '@/app/lib/axios';
 import { toast } from 'sonner';
 import SalesStats from '@/app/components/dashboard/umkm/sales/SalesStats';
 import SalesToolbar from '@/app/components/dashboard/umkm/sales/SalesToolbar';
 import SalesTable from '@/app/components/dashboard/umkm/sales/SalesTable';
 import SalesChart from '@/app/components/dashboard/umkm/sales/SalesChart';
+import type { SaleRecord } from '@/app/components/dashboard/umkm/sales/SalesTable';
+import { SalesBreakdownSkeleton, SkeletonStats } from '@/app/components/dashboard/shared/DashboardSkeleton';
+
+interface SalesSummary {
+    total_initial_stock: number;
+    total_items_sold: number;
+    total_standalone_sold: number;
+    standalone_gross_sales: number;
+    total_bundling_sold: number;
+    bundling_gross_sales: number;
+    total_bundling_transactions: number;
+    total_gross_sales: number;
+    standalone_income: number;
+    bundling_umkm_income: number;
+    total_umkm_revenue: number;
+    total_umkm_income: number;
+    total_paid_income: number;
+    total_pending_income: number;
+    total_pokdarwis_share: number;
+}
 
 export default function UmkmSalesPage() {
-    const [salesData, setSalesData] = useState<any[]>([]);
-    const [summary, setSummary] = useState({
+    const [salesData, setSalesData] = useState<SaleRecord[]>([]);
+    const [summary, setSummary] = useState<SalesSummary>({
         total_initial_stock: 0,
         total_items_sold: 0,
         total_standalone_sold: 0,
@@ -20,6 +41,9 @@ export default function UmkmSalesPage() {
         bundling_gross_sales: 0,
         total_bundling_transactions: 0,
         total_gross_sales: 0,
+        standalone_income: 0,
+        bundling_umkm_income: 0,
+        total_umkm_revenue: 0,
         total_umkm_income: 0,
         total_paid_income: 0,
         total_pending_income: 0,
@@ -32,7 +56,7 @@ export default function UmkmSalesPage() {
     const [selectedMonth, setSelectedMonth] = useState(1);
     const [selectedYear, setSelectedYear] = useState(0);
 
-    const fetchSalesData = async () => {
+    const fetchSalesData = useCallback(async () => {
         try {
             setLoading(true);
             const res = await apiClient.get('/umkm/sales', {
@@ -48,9 +72,9 @@ export default function UmkmSalesPage() {
             if (res.data.summary) {
                 setSummary(res.data.summary);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error fetching sales data:", error);
-            if (error.response?.status === 401) {
+            if (isAxiosError(error) && error.response?.status === 401) {
                 toast.error('Sesi habis atau belum login. Silakan login kembali.');
             } else {
                 toast.error('Gagal memuat data penjualan & hampers.');
@@ -59,7 +83,7 @@ export default function UmkmSalesPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [saleType, statusFilter, selectedMonth, selectedYear, searchQuery]);
 
     useEffect(() => {
         const timeoutId = window.setTimeout(() => {
@@ -76,7 +100,7 @@ export default function UmkmSalesPage() {
             void fetchSalesData();
         }, 0);
         return () => window.clearTimeout(timeoutId);
-    }, [saleType, statusFilter, selectedMonth, selectedYear, searchQuery]);
+    }, [fetchSalesData, selectedYear]);
 
     if (!selectedYear) return null;
 
@@ -106,6 +130,7 @@ export default function UmkmSalesPage() {
             toast.dismiss('pdf-loading');
             toast.success('Laporan PDF UMKM berhasil diunduh!');
         } catch (error) {
+            console.error('Error downloading UMKM sales report:', error);
             toast.dismiss('pdf-loading');
             toast.error('Gagal mengunduh laporan PDF.');
         }
@@ -142,14 +167,20 @@ export default function UmkmSalesPage() {
             </div>
 
             {/* Statistik Ringkasan Atas (Hanya 3 Card Utama agar tidak penuh) */}
-            <SalesStats 
-                totalItemsSold={summary.total_items_sold}
-                totalPaidIncome={summary.total_paid_income}
-                totalPendingIncome={summary.total_pending_income}
-            />
+            {loading ? (
+                <SkeletonStats count={5} className="xl:grid-cols-5" />
+            ) : (
+                <SalesStats
+                    totalItemsSold={summary.total_items_sold}
+                    standaloneIncome={summary.standalone_income}
+                    totalPaidIncome={summary.total_paid_income}
+                    totalPendingIncome={summary.total_pending_income}
+                    totalUmkmRevenue={summary.total_umkm_revenue}
+                />
+            )}
 
-            {/* Panel Analitik & Rincian Stok serta Saluran Penjualan (Standalone vs Bundling + Total Pendapatan Kotor) */}
-            <SalesChart summary={summary} />
+            {/* Panel analitik inventaris, omzet per jalur, dan pembagian hasil bundling */}
+            {loading ? <SalesBreakdownSkeleton /> : <SalesChart summary={summary} />}
 
             <SalesToolbar 
                 searchQuery={searchQuery}

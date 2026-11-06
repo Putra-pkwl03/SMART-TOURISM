@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { List } from 'lucide-react';
 import DestinationTableRow, { DestinationItem } from './DestinationTableRow';
+import { SkeletonTable } from '@/app/components/dashboard/shared/DashboardSkeleton';
 
 interface DestinationTableProps {
     destinations?: DestinationItem[] | null;
@@ -30,11 +31,7 @@ export default function DestinationTable({
     };
 
     if (loading) {
-        return (
-            <div className="bg-white rounded-2xl p-8 text-center text-slate-500 border border-slate-100 shadow-sm">
-                Memuat daftar destinasi...
-            </div>
-        );
+        return <SkeletonTable columns={6} rows={5} />;
     }
 
     if (safeDestinations.length === 0) {

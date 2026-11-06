@@ -9,6 +9,7 @@ import DashboardAnalytics from '@/app/components/dashboard/admin/DashboardAnalyt
 import EwsWidget from '@/app/components/dashboard/admin/EwsWidget';
 import RecentTicketsTable from '@/app/components/dashboard/admin/RecentTicketsTable';
 import StatsOverview from '@/app/components/dashboard/admin/StatsOverview';
+import { DashboardEwsSkeleton, Skeleton, SkeletonStats } from '@/app/components/dashboard/shared/DashboardSkeleton';
 
 const emptySummary: AdminDashboardData['summary'] = {
     visitors: 0,
@@ -117,9 +118,13 @@ export default function AdminDashboardPage() {
                 </div>
             )}
 
-            <EwsWidget data={ewsData} history={dashboard?.ews_history} />
+            {dashboardLoading && !dashboard ? (
+                <DashboardEwsSkeleton />
+            ) : (
+                <EwsWidget data={ewsData} history={dashboard?.ews_history} />
+            )}
 
-            <StatsOverview summary={summary} />
+            {dashboardLoading ? <SkeletonStats /> : <StatsOverview summary={summary} />}
 
             <DashboardAnalytics
                 visitorTrend={dashboard?.visitor_trend ?? []}
@@ -134,11 +139,20 @@ export default function AdminDashboardPage() {
             />
 
             <div className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(300px,0.95fr)_minmax(0,1.85fr)]">
-                <ConsignmentSummary products={dashboard?.consignment_products ?? []} />
-                <RecentTicketsTable
-                    tickets={dashboard?.recent_tickets ?? []}
-                    loading={dashboardLoading}
-                />
+                {dashboardLoading ? (
+                    <>
+                        <Skeleton className="h-64 rounded-2xl" />
+                        <RecentTicketsTable tickets={[]} loading />
+                    </>
+                ) : (
+                    <>
+                        <ConsignmentSummary products={dashboard?.consignment_products ?? []} />
+                        <RecentTicketsTable
+                            tickets={dashboard?.recent_tickets ?? []}
+                            loading={dashboardLoading}
+                        />
+                    </>
+                )}
             </div>
         </div>
     );

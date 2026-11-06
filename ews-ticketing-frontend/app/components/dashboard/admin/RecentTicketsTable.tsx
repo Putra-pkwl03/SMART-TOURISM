@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Ticket } from 'lucide-react';
 import type { RecentDashboardTicket } from '@/app/lib/admin-dashboard';
+import { SkeletonTable } from '@/app/components/dashboard/shared/DashboardSkeleton';
 
 interface RecentTicketsTableProps {
     tickets: RecentDashboardTicket[];
@@ -43,7 +44,7 @@ export default function RecentTicketsTable({ tickets, loading }: RecentTicketsTa
             </div>
 
             {loading ? (
-                <div className="p-8 text-center text-xs text-slate-400">Memuat transaksi tiket...</div>
+                <SkeletonTable columns={6} rows={4} className="rounded-none border-0 shadow-none" />
             ) : tickets.length === 0 ? (
                 <div className="p-8 text-center text-xs text-slate-400">Belum ada transaksi tiket.</div>
             ) : (

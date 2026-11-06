@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { MapPin, ArrowRight, Images as ImageIcon, ChevronLeft, ChevronRight, Boxes, Ticket } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { getBackendUrl } from '@/app/lib/backend-url';
+import DestinationCard from './DestinationCard';
 
 interface UmkmProduct {
     id: number;
@@ -25,22 +27,35 @@ interface DestinationItem {
     image_url?: string;
     images?: { id: number; image_url: string }[];
     umkm_products?: UmkmProduct[];
+    rating?: number;
+    reviews_count?: number;
+    badge_text?: string;
 }
 
 interface DestinationCatalogProps {
     destinations: DestinationItem[];
     loading: boolean;
     onSelectDestination?: (id: number) => void;
+    limit?: number;
+    showAllLink?: boolean;
+    embedded?: boolean;
 }
 
-export default function DestinationCatalog({ destinations, loading }: DestinationCatalogProps) {
+export default function DestinationCatalog({
+    destinations,
+    loading,
+    limit,
+    showAllLink = false,
+    embedded = false,
+}: DestinationCatalogProps) {
     const router = useRouter();
     const BACKEND_URL = getBackendUrl();
+    const visibleDestinations = limit ? destinations.slice(0, limit) : destinations;
 
     const [activeImageIndexes, setActiveImageIndexes] = useState<{ [key: number]: number }>({});
     const [hoveredCardId, setHoveredCardId] = useState<number | null>(null);
 
-    const getFullImageUrl = (url?: string) => {
+    const getFullImageUrl = useCallback((url?: string) => {
         if (!url) return '';
         if (url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://')) {
             return url;
@@ -48,54 +63,38 @@ export default function DestinationCatalog({ destinations, loading }: Destinatio
         const cleanPath = url.startsWith('/') ? url : `/${url}`;
         const finalPath = cleanPath.startsWith('/storage') ? cleanPath : `/storage/${url.replace(/^\/+/, '')}`;
         return `${BACKEND_URL}${finalPath}`;
-    };
+    }, [BACKEND_URL]);
 
-    const getProductImageUrl = (prod: UmkmProduct) => {
+    const getProductImageUrl = useCallback((prod: UmkmProduct) => {
         if (!prod) return '';
-        
         if (prod.images && prod.images.length > 0) {
             const primaryImg = prod.images.find(img => img.is_primary) || prod.images[0];
             const rawPath = primaryImg.image_url || primaryImg.image_path || '';
             return getFullImageUrl(rawPath);
         }
-
         const rawPath = prod.image_url || prod.image_path || prod.image || '';
         return getFullImageUrl(rawPath);
-    };
+    }, [getFullImageUrl]);
 
-    // Auto-slide effect untuk seluruh item (foto destinasi & produk UMKM yang dijadikan satu slide)
+    // Auto-slide effect
     useEffect(() => {
         const interval = setInterval(() => {
             destinations.forEach((dest) => {
                 if (hoveredCardId === dest.id) return;
-
-                const slides: { type: 'destination' | 'umkm'; url: string; title: string }[] = [];
-                
-                if (dest.image_url) {
-                    slides.push({ type: 'destination', url: getFullImageUrl(dest.image_url), title: dest.name });
-                }
+                const slides: any[] = [];
+                if (dest.image_url) slides.push({ type: 'destination', url: getFullImageUrl(dest.image_url), title: dest.name });
                 if (dest.images && Array.isArray(dest.images)) {
                     dest.images.forEach(img => {
                         const formattedUrl = getFullImageUrl(img.image_url);
-                        if (!slides.some(s => s.url === formattedUrl)) {
-                            slides.push({ type: 'destination', url: formattedUrl, title: dest.name });
-                        }
+                        if (!slides.some(s => s.url === formattedUrl)) slides.push({ type: 'destination', url: formattedUrl, title: dest.name });
                     });
                 }
-                if (slides.length === 0) {
-                    slides.push({ type: 'destination', url: '/destinasi-jurug-gedhe.jpg', title: dest.name });
-                }
+                if (slides.length === 0) slides.push({ type: 'destination', url: '/destinasi-jurug-gedhe.jpg', title: dest.name });
 
                 if (dest.umkm_products && dest.umkm_products.length > 0) {
                     dest.umkm_products.forEach(prod => {
                         const prodImg = getProductImageUrl(prod);
-                        if (prodImg) {
-                            slides.push({ 
-                                type: 'umkm', 
-                                url: prodImg, 
-                                title: prod.name 
-                            });
-                        }
+                        if (prodImg) slides.push({ type: 'umkm', url: prodImg, title: prod.name });
                     });
                 }
 
@@ -110,14 +109,13 @@ export default function DestinationCatalog({ destinations, loading }: Destinatio
         }, 4000);
 
         return () => clearInterval(interval);
-    }, [destinations, hoveredCardId]);
+    }, [destinations, hoveredCardId, getFullImageUrl, getProductImageUrl]);
 
     const handleNextSlide = (e: React.MouseEvent, destId: number, totalSlides: number) => {
         e.stopPropagation();
         setActiveImageIndexes(prev => {
             const currentIndex = prev[destId] || 0;
-            const nextIndex = (currentIndex + 1) % totalSlides;
-            return { ...prev, [destId]: nextIndex };
+            return { ...prev, [destId]: (currentIndex + 1) % totalSlides };
         });
     };
 
@@ -125,50 +123,36 @@ export default function DestinationCatalog({ destinations, loading }: Destinatio
         e.stopPropagation();
         setActiveImageIndexes(prev => {
             const currentIndex = prev[destId] || 0;
-            const prevIndex = (currentIndex - 1 + totalSlides) % totalSlides;
-            return { ...prev, [destId]: prevIndex };
+            return { ...prev, [destId]: (currentIndex - 1 + totalSlides) % totalSlides };
         });
     };
 
     return (
-        <section id="destinasi" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
+        <section id="destinasi" className={embedded ? 'min-w-0 scroll-mt-24' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16'}>
+            <div className={`flex flex-col gap-4 md:flex-row md:items-end md:justify-between ${embedded ? 'mb-6' : 'mb-10'}`}>
                 <div>
-                    <span className="text-xs font-bold uppercase tracking-widest text-emerald-700 mb-2 block">
-                        Destinasi Populer
-                    </span>
                     <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-                        Jelajahi Destinasi Wisata Unggulan
+                        Destinasi Wisata Unggulan
                     </h3>
                     <p className="text-sm text-slate-500 mt-1">
-                        Nikmati keindahan alam, tantangan petualangan, dan pengalaman tak terlupakan di Ngoro-Oro.
+                        Nikmati pesona alam Jurug Gedhe dan sekitarnya
                     </p>
                 </div>
+                {showAllLink && (
+                    <Link href="/destinations" className="inline-flex w-fit shrink-0 items-center gap-1 text-sm font-bold text-emerald-600 hover:text-emerald-700 transition">
+                        Lihat Semua <ArrowRight className="h-4 w-4" />
+                    </Link>
+                )}
             </div>
 
             {loading ? (
-                <div
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
-                    role="status"
-                    aria-label="Memuat katalog destinasi"
-                >
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                     {[1, 2, 3].map((card) => (
-                        <div key={card} className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm animate-pulse">
-                            <div className="h-64 bg-slate-200" />
-                            <div className="space-y-4 p-5 pb-3">
+                        <div key={card} className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm animate-pulse h-96">
+                            <div className="h-56 bg-slate-200" />
+                            <div className="p-5 space-y-3">
                                 <div className="h-5 w-3/4 rounded bg-slate-200" />
-                                <div className="space-y-2">
-                                    <div className="h-3 w-full rounded bg-slate-100" />
-                                    <div className="h-3 w-5/6 rounded bg-slate-100" />
-                                </div>
-                                <div className="flex items-center justify-between rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2">
-                                    <div className="h-3 w-1/3 rounded bg-slate-200" />
-                                    <div className="h-3 w-1/4 rounded bg-emerald-100" />
-                                </div>
-                            </div>
-                            <div className="mt-1 flex items-center justify-between border-t border-slate-50 px-5 py-3">
                                 <div className="h-3 w-1/2 rounded bg-slate-100" />
-                                <div className="h-8 w-8 rounded-xl bg-slate-100" />
                             </div>
                         </div>
                     ))}
@@ -178,8 +162,8 @@ export default function DestinationCatalog({ destinations, loading }: Destinatio
                     <p className="text-sm text-slate-500">Belum ada destinasi atau paket wisata yang tersedia.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {destinations.map((dest) => {
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {visibleDestinations.map((dest) => {
                         const slides: { type: 'destination' | 'umkm'; url: string; title: string }[] = [];
                         
                         if (dest.image_url) {
@@ -197,157 +181,30 @@ export default function DestinationCatalog({ destinations, loading }: Destinatio
                             slides.push({ type: 'destination', url: '/destinasi-jurug-gedhe.jpg', title: dest.name });
                         }
 
-                        const totalUmkmProducts = dest.umkm_products?.length || 0;
-                        const isBundling = totalUmkmProducts > 0;
-
                         if (dest.umkm_products && dest.umkm_products.length > 0) {
                             dest.umkm_products.forEach(prod => {
                                 const prodImg = getProductImageUrl(prod);
                                 if (prodImg) {
-                                    slides.push({ 
-                                        type: 'umkm', 
-                                        url: prodImg, 
-                                        title: prod.name 
-                                    });
+                                    slides.push({ type: 'umkm', url: prodImg, title: prod.name });
                                 }
                             });
                         }
 
                         const currentSlideIndex = activeImageIndexes[dest.id] || 0;
-                        const currentSlide = slides[currentSlideIndex] || slides[0];
 
                         return (
-                            <div 
-                                key={dest.id} 
-                                onClick={() => router.push(`/destinations/${dest.id}`)}
-                                onMouseEnter={() => setHoveredCardId(dest.id)}
+                            <DestinationCard
+                                key={dest.id}
+                                dest={dest}
+                                currentSlideIndex={currentSlideIndex}
+                                slides={slides}
+                                embedded={embedded}
+                                onCardClick={(id) => router.push(`/destinations/${id}`)}
+                                onNextSlide={handleNextSlide}
+                                onPrevSlide={handlePrevSlide}
+                                onMouseEnter={(id) => setHoveredCardId(id)}
                                 onMouseLeave={() => setHoveredCardId(null)}
-                                className="bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:border-emerald-200 overflow-hidden flex flex-col justify-between group cursor-pointer transition-all duration-300"
-                            >
-                                <div>
-                                    {/* Container Gambar Utama (Slider Universal: Foto & Produk UMKM) */}
-                                    <div className="relative h-64 bg-slate-900 overflow-hidden">
-                                        <div 
-                                            className="absolute inset-0 bg-cover bg-center transition-all duration-700 ease-out group-hover:scale-105"
-                                            style={{ backgroundImage: `url('${currentSlide.url}')` }}
-                                        />
-                                        
-                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-slate-950/30 pointer-events-none" />
-
-                                        {/* TOP LEFT: Badge Kategori Jenis Paket */}
-                                        <div className="absolute top-4 left-4 z-10 flex flex-col gap-1">
-                                            {isBundling ? (
-                                                <span className="px-3 py-1 rounded-full bg-emerald-700/90 backdrop-blur-md text-white font-bold text-[10px] uppercase tracking-wider shadow-md border border-emerald-500/30">
-                                                    📦 BUNDLING UMKM ({totalUmkmProducts})
-                                                </span>
-                                            ) : (
-                                                <span className="px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-slate-700 font-bold text-[10px] uppercase tracking-wider shadow-sm border border-slate-200">
-                                                    🏞️ WISATA BIASA
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {/* TOP RIGHT: Indikator Slide Aktif */}
-                                        <div className="absolute top-4 right-4 z-10">
-                                            <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-900/60 backdrop-blur-md text-white font-medium text-[10px]">
-                                                <ImageIcon className="w-3.5 h-3.5 text-emerald-400" />
-                                                {currentSlideIndex + 1} / {slides.length}
-                                            </span>
-                                        </div>
-
-                                        {/* FLOATING OVERLAY DI ATAS GAMBAR */}
-                                        {currentSlide.type === 'umkm' ? (
-                                            <div className="absolute bottom-12 left-4 right-4 z-10 flex items-center gap-3 bg-emerald-950/75 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-emerald-500/40 shadow-lg animate-fadeIn">
-                                                <div className="w-8 h-8 rounded-xl overflow-hidden bg-white/10 flex-shrink-0 border border-emerald-400/30 flex items-center justify-center">
-                                                    <Boxes className="w-4 h-4 text-emerald-400" />
-                                                </div>
-                                                <div className="min-w-0 flex-1">
-                                                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wide block leading-none">
-                                                        Suvenir Bundling Termasuk
-                                                    </span>
-                                                    <span className="text-xs font-bold text-white truncate block mt-0.5">
-                                                        {currentSlide.title}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="absolute bottom-12 left-4 right-4 z-10">
-                                                <span className="text-[10px] font-semibold text-slate-300 uppercase tracking-widest block drop-shadow-sm">
-                                                    Galeri Destinasi
-                                                </span>
-                                                <span className="text-xs font-bold text-white drop-shadow-md truncate block">
-                                                    {dest.name}
-                                                </span>
-                                            </div>
-                                        )}
-
-                                        {/* Tombol Navigasi Geser (Next/Prev) */}
-                                        {slides.length > 1 && (
-                                            <>
-                                                <button
-                                                    onClick={(e) => handlePrevSlide(e, dest.id, slides.length)}
-                                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/70 hover:bg-white text-slate-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-md backdrop-blur-sm z-20"
-                                                    title="Sebelumnya"
-                                                >
-                                                    <ChevronLeft className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => handleNextSlide(e, dest.id, slides.length)}
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/70 hover:bg-white text-slate-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-md backdrop-blur-sm z-20"
-                                                    title="Selanjutnya"
-                                                >
-                                                    <ChevronRight className="w-4 h-4" />
-                                                </button>
-
-                                                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
-                                                    {slides.map((_, idx) => (
-                                                        <span
-                                                            key={idx}
-                                                            className={`h-1.5 rounded-full transition-all duration-300 ${
-                                                                idx === currentSlideIndex 
-                                                                    ? 'w-5 bg-emerald-400' 
-                                                                    : 'w-1.5 bg-white/60'
-                                                            }`}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-
-                                    {/* Bagian Deskripsi & Harga Tiket (Padding dikurangi agar lebih rapat/pas) */}
-                                    <div className="p-5 pb-3">
-                                        <h4 className="font-bold text-slate-900 text-base mb-1.5 group-hover:text-emerald-700 transition line-clamp-1">
-                                            {dest.name}
-                                        </h4>
-                                        <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 mb-3">
-                                            {dest.description || 'Nikmati panorama tebing dan keindahan alam eksotis.'}
-                                        </p>
-
-                                        {/* Informasi Harga Tiket */}
-                                        <div className="flex items-center justify-between bg-emerald-50/60 border border-emerald-100 px-3 py-1.5 rounded-xl">
-                                            <span className="text-[11px] font-semibold text-slate-600 flex items-center gap-1">
-                                                <Ticket className="w-3.5 h-3.5 text-emerald-600" />
-                                                Harga Tiket:
-                                            </span>
-                                            <span className="text-xs font-bold text-emerald-700">
-                                                {dest.ticket_price ? `Rp ${Number(dest.ticket_price).toLocaleString('id-ID')}` : 'Gratis'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Footer Card dengan jarak lebih rapat (py-3) */}
-                                <div className="px-5 py-3 flex items-center justify-between border-t border-slate-50 mt-1">
-                                    <p className="text-xs text-slate-500 flex items-center gap-1.5 truncate pr-2">
-                                        <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                                        <span className="truncate font-medium">{dest.location || 'Ngoro-Oro, Patuk'}</span>
-                                    </p>
-                                    <div className="p-2 bg-slate-50 group-hover:bg-emerald-600 group-hover:text-white rounded-xl transition flex-shrink-0 shadow-sm">
-                                        <ArrowRight className="w-4 h-4" />
-                                    </div>
-                                </div>
-                            </div>
+                            />
                         );
                     })}
                 </div>

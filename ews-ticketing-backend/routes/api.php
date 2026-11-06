@@ -63,6 +63,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/products/{id}/stock', [UmkmProductController::class, 'updateStock']);
 
         // Manajemen Penjualan & Hampers UMKM
+        Route::get('/cashier/products', [UmkmSalesController::class, 'cashierProducts']);
+        Route::post('/cashier/sales', [UmkmSalesController::class, 'storeOfflineSale']);
         Route::get('/sales', [UmkmSalesController::class, 'index']);
         Route::get('/sales-summary', [UmkmSalesController::class, 'productSalesSummary']);
         Route::get('/sales/export-pdf', [UmkmSalesController::class, 'exportReport']);

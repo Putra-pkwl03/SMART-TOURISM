@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { Package, ChevronDown, ChevronUp, Calendar, User, Ticket, CreditCard, MapPin, CheckCircle2, Clock } from 'lucide-react';
 import { getBackendUrl } from '@/app/lib/backend-url';
+import { SkeletonTable } from '@/app/components/dashboard/shared/DashboardSkeleton';
 
 interface ConsignmentTableProps {
     consignments: any[];
@@ -21,11 +22,7 @@ export default function ConsignmentTable({ consignments, loading, formatRupiah, 
     };
 
     if (loading) {
-        return (
-            <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center text-xs text-slate-500 shadow-xs">
-                Memuat data konsinyasi...
-            </div>
-        );
+        return <SkeletonTable columns={7} rows={6} />;
     }
 
     if (consignments.length === 0) {

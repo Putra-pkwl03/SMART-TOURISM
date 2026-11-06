@@ -11,6 +11,7 @@ import TicketStats from '@/app/components/dashboard/admin/tickets/TicketStats';
 import TicketFilters from '@/app/components/dashboard/admin/tickets/TicketFilters';
 import TicketTable from '@/app/components/dashboard/admin/tickets/TicketTable';
 import TicketModals from '@/app/components/dashboard/admin/tickets/TicketModals';
+import { SkeletonStats } from '@/app/components/dashboard/shared/DashboardSkeleton';
 
 interface TicketItem {
     id: number;
@@ -134,12 +135,14 @@ export default function AdminTicketsPage() {
             <TicketHeader />
 
             {/* Statistik Cards */}
-            <TicketStats 
-                totalVisitors={totalVisitors > 0 ? totalVisitors : 2850}
-                totalTicketsSold={2420}
-                totalRevenue={totalRevenue > 0 ? totalRevenue : 48750000}
-                todayVisitors={342}
-            />
+            {loading ? <SkeletonStats /> : (
+                <TicketStats
+                    totalVisitors={totalVisitors > 0 ? totalVisitors : 2850}
+                    totalTicketsSold={2420}
+                    totalRevenue={totalRevenue > 0 ? totalRevenue : 48750000}
+                    todayVisitors={342}
+                />
+            )}
 
             <TicketFilters 
                 searchTerm={searchTerm}

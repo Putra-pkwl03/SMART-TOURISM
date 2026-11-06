@@ -45,6 +45,11 @@ class UmkmProduct extends Model
         return $this->hasMany(TicketItem::class);
     }
 
+    public function destinations()
+    {
+        return $this->belongsToMany(Destination::class, 'destination_umkm_products', 'umkm_product_id', 'destination_id');
+    }
+
     /**
      * Shortcut untuk langsung mengambil data Tiket yang memesan produk ini
      */

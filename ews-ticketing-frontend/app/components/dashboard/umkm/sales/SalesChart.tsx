@@ -11,8 +11,10 @@ interface SalesChartProps {
         total_bundling_sold: number;
         bundling_gross_sales?: number;
         total_bundling_transactions: number;
-        total_gross_sales: number;
+        total_umkm_revenue: number;
+        standalone_income: number;
         total_umkm_income: number;
+        bundling_umkm_income?: number;
         total_pokdarwis_share: number;
     };
 }
@@ -27,14 +29,17 @@ export default function SalesChart({ summary }: SalesChartProps) {
     const totalSold = summary.total_items_sold || 0;
     const remainingStock = Math.max(0, initialStock - totalSold);
 
-    // Asumsi harga rata-rata per item atau estimasi potensi dari sisa stok jika dijual via standalone
-    // Kita ambil rata-rata harga dari omzet standalone/bundling jika ada, atau estimasi berdasarkan total gross sales / total terjual
-    const averagePrice = totalSold > 0 ? (summary.total_gross_sales / totalSold) : 0;
+    const averagePrice = totalSold > 0
+        ? ((summary.standalone_gross_sales || 0) + (summary.bundling_gross_sales || 0)) / totalSold
+        : 0;
     const potentialStandaloneRevenue = remainingStock * averagePrice;
 
     // Kalkulasi persentase proporsi pendapatan bersih UMKM vs Pokdarwis
-    const totalRevenue = (summary.total_umkm_income || 0) + (summary.total_pokdarwis_share || 0);
-    const umkmPercentage = totalRevenue > 0 ? Math.round(((summary.total_umkm_income || 0) / totalRevenue) * 100) : 20;
+    const bundlingUmkmIncome = summary.bundling_umkm_income ?? summary.total_umkm_income ?? 0;
+    const totalBundlingDistribution = bundlingUmkmIncome + (summary.total_pokdarwis_share || 0);
+    const umkmPercentage = totalBundlingDistribution > 0
+        ? Math.round((bundlingUmkmIncome / totalBundlingDistribution) * 100)
+        : 0;
     const pokdarwisPercentage = 100 - umkmPercentage;
 
     return (
@@ -96,18 +101,18 @@ export default function SalesChart({ summary }: SalesChartProps) {
                     </div>
                 </div>
 
-                {/* Total Omzet Kotor Keseluruhan dengan Keterangan Jelas */}
+                {/* Total pendapatan UMKM: POS penuh ditambah hak UMKM dari bundling */}
                 <div className="bg-emerald-50/60 p-4 rounded-2xl border border-emerald-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
                         <div className="w-9 h-9 bg-emerald-600 text-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
                             <DollarSign className="w-5 h-5" />
                         </div>
                         <div>
-                            <span className="text-sm font-bold text-emerald-900 block">Total Pendapatan Kotor Keseluruhan (Omzet)</span>
-                            <span className="text-xs text-emerald-600 font-medium">Gabungan riwayat omzet Standalone + Bundling Tiket Wisata</span>
+                            <span className="text-sm font-bold text-emerald-900 block">Total Pendapatan UMKM</span>
+                            <span className="text-xs text-emerald-600 font-medium">Pendapatan POS + hak UMKM dari bundling (bukan omzet kotor bundling)</span>
                         </div>
                     </div>
-                    <span className="text-base font-black text-emerald-700">{formatRupiah(summary.total_gross_sales || 0)}</span>
+                    <span className="text-base font-black text-emerald-700">{formatRupiah(summary.total_umkm_revenue || 0)}</span>
                 </div>
             </div>
 
@@ -115,14 +120,14 @@ export default function SalesChart({ summary }: SalesChartProps) {
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between">
                 <div>
                     <h3 className="text-base font-extrabold text-slate-900 tracking-tight">Analisis Proporsi Pendapatan</h3>
-                    <p className="text-sm text-slate-500 mt-0.5">Perbandingan hak bagi hasil bersih UMKM vs Pokdarwis.</p>
+                    <p className="text-sm text-slate-500 mt-0.5">Proporsi bagi hasil dari transaksi bundling saja. Penjualan satuan POS tidak dibagi hasil.</p>
                 </div>
 
                 <div className="space-y-3 py-3">
                     <div>
                         <div className="flex justify-between text-sm font-bold mb-1">
-                            <span className="text-emerald-700">Hak UMKM ({umkmPercentage}%)</span>
-                            <span className="text-slate-900">{formatRupiah(summary.total_umkm_income)}</span>
+                            <span className="text-emerald-700">Hak UMKM Bundling ({umkmPercentage}%)</span>
+                            <span className="text-slate-900">{formatRupiah(bundlingUmkmIncome)}</span>
                         </div>
                         <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
                             <div className="bg-emerald-600 h-full rounded-full transition-all duration-500" style={{ width: `${umkmPercentage}%` }}></div>
@@ -142,7 +147,7 @@ export default function SalesChart({ summary }: SalesChartProps) {
 
                 <div className="text-[10px] font-medium text-slate-400 bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center flex items-center justify-center gap-1.5">
                     <Info className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                    <span>Rekonsiliasi otomatis tercatat untuk audit End of Month (EOM).</span>
+                    <span>Status pencairan dan proporsi bagi hasil hanya menghitung transaksi bundling; omzet POS dicatat sebagai pendapatan langsung UMKM.</span>
                 </div>
             </div>
         </div>

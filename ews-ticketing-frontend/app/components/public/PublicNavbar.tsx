@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, User, LogOut, Ticket, ChevronDown, UserCircle } from 'lucide-react';
+import { User, LogOut, ChevronDown, UserCircle, Menu, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/app/lib/axios';
 import LogoutModal from '@/app/components/dashboard/admin/LogoutModal'; 
@@ -16,6 +16,7 @@ function NavbarContent() {
     const [currentUser, setCurrentUser] = useState<{ id: number; name: string; email: string; role: string } | null>(null);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     
     // State untuk Dropdown User Menu
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -57,9 +58,7 @@ function NavbarContent() {
 
     // 2. Scroll Detection untuk Active Link
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            setActiveHash(window.location.hash);
-        }
+        const initialHashFrame = window.requestAnimationFrame(() => setActiveHash(window.location.hash));
 
         const handleScroll = () => {
             if (pathname !== '/') return;
@@ -88,7 +87,10 @@ function NavbarContent() {
         };
 
         window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
+        return () => {
+            window.cancelAnimationFrame(initialHashFrame);
+            window.removeEventListener('scroll', handleScroll);
+        };
     }, [pathname]);
 
     // 3. Fungsi Konfirmasi & Eksekusi Logout
@@ -150,12 +152,15 @@ function NavbarContent() {
         { name: 'Beranda', href: '/', hash: '' },
         { name: 'Destinasi', href: '/#destinasi', hash: '#destinasi', matchPrefix: '/destinations' },
         { name: 'E-Ticket', href: '/#booking', hash: '#booking' },
-        { name: 'Paket Wisata', href: '/#paket', hash: '#paket' },
-        { name: 'UMKM', href: '/#umkm', hash: '#umkm' },
-        { name: 'Tentang', href: '/#tentang', hash: '#tentang' },
+        { name: 'Produk UMKM', href: '/#umkm', hash: '#umkm', matchPrefix: '/umkm/produk' },
+        { name: 'Tentang', href: '/tentang', hash: '' },
     ];
 
     const isLinkActive = (link: typeof navLinks[0]) => {
+        if (link.href === '/tentang') {
+            return pathname === '/tentang';
+        }
+
         if (link.matchPrefix && pathname.startsWith(link.matchPrefix)) {
             return true;
         }
@@ -173,7 +178,7 @@ function NavbarContent() {
     return (
         <>
             <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+                <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
                     
                     {/* Logo & Brand */}
                     <Link href="/" className="flex items-center gap-3 cursor-pointer">
@@ -195,7 +200,11 @@ function NavbarContent() {
                                 <Link 
                                     key={link.name} 
                                     href={link.href} 
-                                    onClick={(e) => handleNavClick(e, link.hash)}
+                                    onClick={(e) => {
+                                        if (link.href !== '/tentang') {
+                                            handleNavClick(e, link.hash);
+                                        }
+                                    }}
                                     className={`transition pb-1 cursor-pointer ${
                                         active 
                                             ? 'text-emerald-700 font-bold border-b-2 border-emerald-700' 
@@ -210,6 +219,16 @@ function NavbarContent() {
 
                     {/* Right Actions */}
                     <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setIsMobileMenuOpen((isOpen) => !isOpen)}
+                            aria-label={isMobileMenuOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'}
+                            aria-expanded={isMobileMenuOpen}
+                            aria-controls="public-mobile-navigation"
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 md:hidden"
+                        >
+                            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                        </button>
                         {currentUser ? (
                             <div className="relative pl-2 border-l border-slate-200" ref={dropdownRef}>
                                 <button
@@ -241,15 +260,7 @@ function NavbarContent() {
                                                 className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition"
                                             >
                                                 <UserCircle className="w-4 h-4 text-slate-400" />
-                                                <span>Profil Saya</span>
-                                            </Link>
-                                            <Link
-                                                href="/tickets/history"
-                                                onClick={() => setIsDropdownOpen(false)}
-                                                className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition"
-                                            >
-                                                <Ticket className="w-4 h-4 text-slate-400" />
-                                                <span>Riwayat E-Ticket</span>
+                                                <span>Akun & Riwayat Pesanan</span>
                                             </Link>
                                         </div>
 
@@ -271,14 +282,44 @@ function NavbarContent() {
                         ) : (
                             <Link 
                                 href="/auth/users/login" 
-                                className="px-5 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold rounded-full shadow-md transition flex items-center gap-2 cursor-pointer"
+                                className="px-3 py-2.5 sm:px-5 bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold rounded-full shadow-md transition flex items-center gap-2 cursor-pointer"
                             >
                                 <User className="w-3.5 h-3.5" />
-                                <span>Masuk / Daftar</span>
+                                <span className="hidden sm:inline">Masuk / Daftar</span>
                             </Link>
                         )}
                     </div>
                 </div>
+                {isMobileMenuOpen && (
+                    <nav
+                        id="public-mobile-navigation"
+                        aria-label="Navigasi utama"
+                        className="absolute inset-x-0 top-full border-b border-slate-200 bg-white px-4 py-3 shadow-lg md:hidden"
+                    >
+                        <div className="mx-auto flex max-w-7xl flex-col gap-1">
+                            {navLinks.map((link) => {
+                                const active = isLinkActive(link);
+                                return (
+                                    <Link
+                                        key={link.name}
+                                        href={link.href}
+                                        onClick={(event) => {
+                                            setIsMobileMenuOpen(false);
+                                            if (link.href !== '/tentang') handleNavClick(event, link.hash);
+                                        }}
+                                        className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                                            active
+                                                ? 'bg-emerald-50 text-emerald-800'
+                                                : 'text-slate-700 hover:bg-slate-50 hover:text-emerald-800'
+                                        }`}
+                                    >
+                                        {link.name}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </nav>
+                )}
             </header>
 
             {/* Modal Konfirmasi Keluar */}
