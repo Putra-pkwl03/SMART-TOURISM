@@ -111,6 +111,12 @@ class TicketController extends Controller
             return response()->json(['message' => 'Tiket telah kedaluwarsa.'], 422);
         }
 
+        if ($ticket->payment_status !== 'paid') {
+            return response()->json([
+                'message' => 'Tiket belum diverifikasi pembayarannya oleh Admin.'
+            ], 422);
+        }
+
         $ticket->update([
             'ticket_status' => 'used',
             'used_at' => now(),

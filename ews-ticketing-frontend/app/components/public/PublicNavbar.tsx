@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { User, LogOut, ChevronDown, UserCircle, Menu, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/app/lib/axios';
+import { clearAuthSession } from '@/app/lib/auth-session';
 import LogoutModal from '@/app/components/dashboard/admin/LogoutModal'; 
 
 function NavbarContent() {
@@ -42,7 +44,11 @@ function NavbarContent() {
         checkUserSession();
 
         window.addEventListener('storage', checkUserSession);
-        return () => window.removeEventListener('storage', checkUserSession);
+        window.addEventListener('auth:session-expired', checkUserSession);
+        return () => {
+            window.removeEventListener('storage', checkUserSession);
+            window.removeEventListener('auth:session-expired', checkUserSession);
+        };
     }, [pathname]);
 
     // Tutup dropdown ketika klik di luar area dropdown
@@ -104,12 +110,7 @@ function NavbarContent() {
             logoutFailed = true;
             console.error('Logout error:', error);
         } finally {
-            localStorage.removeItem('token');
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user');
-
-            document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
-            document.cookie = 'user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+            clearAuthSession();
 
             setCurrentUser(null);
             setIsLogoutModalOpen(false);
@@ -182,12 +183,17 @@ function NavbarContent() {
                     
                     {/* Logo & Brand */}
                     <Link href="/" className="flex items-center gap-3 cursor-pointer">
-                        <div className="w-10 h-10 bg-emerald-700 rounded-xl flex items-center justify-center text-white font-bold shadow-md">
-                            🌿
-                        </div>
-                        <div>
+                        <Image
+                            src="/images/logo1.png"
+                            alt="Logo SmartMandala"
+                            width={72}
+                            height={56}
+                            className="h-12 w-[62px] object-contain"
+                            priority
+                        />
+                        <div className="border-l border-slate-200 pl-3">
                             <h1 className="font-extrabold text-base text-slate-900 tracking-tight">SmartMandala</h1>
-                            <p className="text-[10px] text-slate-500 font-medium">Wisata Alam • Kuliner • UMKM</p>
+                            <p className="text-[10px] text-slate-500 font-medium">Wisata Cerdas, Ekonomi Mandiri</p>
                         </div>
                     </Link>
 

@@ -1,5 +1,10 @@
 import axios from 'axios';
 import { getApiUrl } from './backend-url';
+import {
+    expireAuthSession,
+    getAuthToken,
+    resetSessionExpirationHandling,
+} from './auth-session';
 
 export const apiClient = axios.create({
     baseURL: getApiUrl(),
@@ -13,7 +18,7 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
     config.baseURL = getApiUrl();
     if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+        const token = getAuthToken();
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -22,3 +27,16 @@ apiClient.interceptors.request.use((config) => {
 }, (error) => {
     return Promise.reject(error);
 });
+
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error: unknown) => {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+            expireAuthSession();
+        }
+
+        return Promise.reject(error);
+    }
+);
+
+resetSessionExpirationHandling();

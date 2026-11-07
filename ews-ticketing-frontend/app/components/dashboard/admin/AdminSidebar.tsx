@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { 
     LayoutDashboard, 
     MapPin, 
@@ -20,6 +21,7 @@ import {
     DollarSign
 } from 'lucide-react';
 import { apiClient } from '@/app/lib/axios';
+import { clearAuthSession } from '@/app/lib/auth-session';
 import LogoutModal from './LogoutModal';
 import { toast } from 'sonner';
 
@@ -63,12 +65,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
             logoutFailed = true;
             console.error('Logout request failed:', error);
         } finally {
-            localStorage.removeItem('token');
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user');
-            localStorage.removeItem('user_role');
-            document.cookie = 'auth_token=; path=/; max-age=0';
-            document.cookie = 'user_role=; path=/; max-age=0';
+            clearAuthSession();
             setShowLogoutModal(false);
             setLoadingLogout(false);
             if (logoutFailed) {
@@ -143,16 +140,23 @@ export default function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
                 {/* Konten Utama Sidebar (Berada di atas overlay) */}
                 <div className="relative z-10 flex flex-col h-full justify-between">
                     <div>
-                        {/* Bagian Header / Logo Asli (Tidak Diubah) */}
                         <div className="p-6 border-b border-emerald-900/60 flex items-center justify-between">
-                            <div>
-                                <div className="flex items-center gap-2.5 mb-1">
-                                    <div className="w-7 h-7 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-md">
-                                        ST
-                                    </div>
-                                    <h1 className="text-white font-bold text-sm tracking-wider">SMART TOURISM</h1>
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-md">
+                                    <Image
+                                        src="/images/logo1.png"
+                                        alt="Logo SmartMandala"
+                                        width={56}
+                                        height={48}
+                                        className="h-full w-full object-contain"
+                                    />
                                 </div>
-                                <p className="text-[11px] text-emerald-200/80">Jurug Gedhe & EWS Terpadu</p>
+                                <div>
+                                    <h1 className="text-sm font-bold tracking-tight text-white">SmartMandala</h1>
+                                    <p className="mt-1 text-[10px] leading-relaxed text-emerald-100/80">
+                                        Smart system desa wisata &amp; EWS
+                                    </p>
+                                </div>
                             </div>
                             <button 
                                 onClick={() => setIsOpen(false)}

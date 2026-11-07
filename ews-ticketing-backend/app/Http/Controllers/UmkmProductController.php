@@ -86,7 +86,7 @@ class UmkmProductController extends Controller
      */
     public function show($id)
     {
-        $product = UmkmProduct::with('images')->findOrFail($id);
+        $product = $this->findOwnedProduct($request, $id)->load('images');
 
         return response()->json([
             'status' => 'success',
@@ -99,7 +99,7 @@ class UmkmProductController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $product = UmkmProduct::with('images')->findOrFail($id);
+        $product = $this->findOwnedProduct($request, $id)->load('images');
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -157,9 +157,9 @@ class UmkmProductController extends Controller
     /**
      * Menghapus produk beserta file gambarnya di storage
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        $product = UmkmProduct::with('images')->findOrFail($id);
+        $product = $this->findOwnedProduct($request, $id)->load('images');
 
         foreach ($product->images as $image) {
             if (Storage::disk('public')->exists($image->image_path)) {
@@ -184,7 +184,7 @@ class UmkmProductController extends Controller
             'stock' => 'required|integer|min:0'
         ]);
 
-        $product = UmkmProduct::findOrFail($id);
+        $product = $this->findOwnedProduct($request, $id);
         
         // Menghitung selisih penambahan stok (jika stok baru lebih besar dari stok lama)
         $oldStock = $product->stock;
@@ -205,5 +205,13 @@ class UmkmProductController extends Controller
             'message' => 'Stok produk berhasil diperbarui.',
             'data' => $product
         ]);
+    }
+
+    private function findOwnedProduct(Request $request, int|string $id): UmkmProduct
+    {
+        $user = $request->user();
+        $umkmId = $user->umkm_id ?? $user->id;
+
+        return UmkmProduct::where('umkm_id', $umkmId)->findOrFail($id);
     }
 }

@@ -33,6 +33,7 @@ class AuthController extends Controller
             'message' => 'Registrasi akun wisatawan berhasil!',
             'access_token' => $token,
             'token_type' => 'Bearer',
+            'expires_in' => (int) config('sanctum.expiration') * 60,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -68,6 +69,7 @@ class AuthController extends Controller
             'message' => 'Login berhasil',
             'access_token' => $token,
             'token_type' => 'Bearer',
+            'expires_in' => (int) config('sanctum.expiration') * 60,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -91,5 +93,13 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         return response()->json($request->user());
+    }
+
+    public function activity()
+    {
+        return response()->json([
+            'message' => 'Sesi aktif diperpanjang.',
+            'expires_in' => (int) config('sanctum.expiration') * 60,
+        ]);
     }
 }

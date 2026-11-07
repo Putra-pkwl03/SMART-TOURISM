@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { isAxiosError } from 'axios';
 import { Mail, Lock, User, ArrowRight, Loader2, ShieldCheck, Ticket } from 'lucide-react';
 import { apiClient } from '@/app/lib/axios';
+import { persistAuthSession } from '@/app/lib/auth-session';
 import { toast } from 'sonner';
 
 import PublicNavbar from '@/app/components/public/PublicNavbar';
@@ -28,16 +30,8 @@ export default function UserAuthPage() {
             if (isLogin) {
                 // Proses Login
                 const res = await apiClient.post('/auth/login', { email, password });
-                const { access_token, user } = res.data;
-
-                // Simpan ke LocalStorage
-                localStorage.setItem('token', access_token);
-                localStorage.setItem('user', JSON.stringify(user));
-                localStorage.setItem('user_role', user.role);
-
-                // Simpan ke Cookie agar Middleware Next.js dapat membacanya
-                document.cookie = `auth_token=${access_token}; path=/; max-age=86400; SameSite=Lax`;
-                document.cookie = `user_role=${user.role}; path=/; max-age=86400; SameSite=Lax`;
+                const { access_token, expires_in, user } = res.data;
+                persistAuthSession(access_token, user, expires_in);
 
                 toast.success(`Selamat datang kembali, ${user.name}!`);
                 
@@ -76,9 +70,12 @@ export default function UserAuthPage() {
                 setPassword('');
                 setPasswordConfirmation('');
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            toast.error(error.response?.data?.message || 'Terjadi kesalahan pada sistem.');
+            const message = isAxiosError<{ message?: string }>(error)
+                ? error.response?.data?.message
+                : undefined;
+            toast.error(message || 'Terjadi kesalahan pada sistem.');
         } finally {
             setLoading(false);
         }
